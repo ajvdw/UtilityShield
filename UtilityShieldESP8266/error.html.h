@@ -1,4 +1,4 @@
-const char error_html[] PROGMEM = R"=====(
+const char error_html[] = R"=====(
 <!-- header -->
 <!-- menu -->
 <div id="content">
@@ -22,4 +22,5 @@ void send_error_html()
 	server.send ( 200, "text/html", html );
 	Serial.println(__FUNCTION__); 
 }
+
 

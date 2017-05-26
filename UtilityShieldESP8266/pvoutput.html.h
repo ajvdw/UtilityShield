@@ -1,4 +1,4 @@
-const char pvoutput_html[] PROGMEM = R"=====(
+const char pvoutput_html[] = R"=====(
 <!-- header -->
 <!-- menu -->
 <div id="content">
@@ -48,5 +48,6 @@ void send_pvoutput_html()
 	server.send ( 200, "text/html", html ); 
 	Serial.println(__FUNCTION__); 
 }
+
 
 

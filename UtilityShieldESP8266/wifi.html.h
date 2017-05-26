@@ -1,4 +1,4 @@
-const char wifi_html[] PROGMEM = R"=====(
+const char wifi_html[] = R"=====(
 <!-- header -->
 <!-- menu -->
 <script>
@@ -27,9 +27,9 @@ xmlhttp.open('GET', 'ssid', true); xmlhttp.send();
 <tr><th>SSID:</th><td><input type="text" id="ssid" name="ssid" value="@ssid"></td></tr>
 <tr><th>Password:</th><td><input type="password" id="password" name="password" value="@password"></td></tr>
 <tr><th>DHCP:</th><td><input type="checkbox" id="dhcp" name="dhcp" checked="@dhcp"></td></tr>
-<tr><th>IP:</th><td><input type="text" id="ip_0" name="ip_0" size="2" value="@ip_0">.<input type="text" id="ip_1" name="ip_1" size="2" value="@ip_1">.<input type="text" id="ip_2" name="ip_2" size="2" value="@ip_2">.<input type="text" id="ip_3" name="ip_3" value="@ip_3" size="2"></td></tr>
-<tr><th>Netmask:</th><td><input type="text" id="nm_0" name="nm_0" size="2" value="@nm_0">.<input type="text" id="nm_1" name="nm_1" size="2" value="@nm_1">.<input type="text" id="nm_2" name="nm_2" size="2" value="@nm_2">.<input type="text" id="nm_3" name="nm_3" size="2" value="@nm_3"></td></tr>
-<tr><th>Gateway:</th><td><input type="text" id="gw_0" name="gw_0" size="2" value="@gw_0">.<input type="text" id="gw_1" name="gw_1" size="2" value="@gw_1">.<input type="text" id="gw_2" name="gw_2" size="2" value="@gw_2">.<input type="text" id="gw_3" name="gw_3" size="2" value="@gw_3"></td></tr>
+<tr><th>IP:</th><td><input type="text" id="ip_0" name="ip_0" size="4" value="@ip_0">.<input type="text" id="ip_1" name="ip_1" size="4" value="@ip_1">.<input type="text" id="ip_2" name="ip_2" size="4" value="@ip_2">.<input type="text" id="ip_3" name="ip_3" value="@ip_3" size="4"></td></tr>
+<tr><th>Netmask:</th><td><input type="text" id="nm_0" name="nm_0" size="4" value="@nm_0">.<input type="text" id="nm_1" name="nm_1" size="4" value="@nm_1">.<input type="text" id="nm_2" name="nm_2" size="4" value="@nm_2">.<input type="text" id="nm_3" name="nm_3" size="4" value="@nm_3"></td></tr>
+<tr><th>Gateway:</th><td><input type="text" id="gw_0" name="gw_0" size="4" value="@gw_0">.<input type="text" id="gw_1" name="gw_1" size="4" value="@gw_1">.<input type="text" id="gw_2" name="gw_2" size="4" value="@gw_2">.<input type="text" id="gw_3" name="gw_3" size="4" value="@gw_3"></td></tr>
 <tr><th></th><td><input type="submit" value="Save"></td></tr>
 </form>
 </table>
@@ -67,11 +67,11 @@ void send_wifi_html()
 			if (server.argName(i) == "gw_1") if (checkRange(server.arg(i))) 	config.Gateway[1] =  server.arg(i).toInt();
 			if (server.argName(i) == "gw_2") if (checkRange(server.arg(i))) 	config.Gateway[2] =  server.arg(i).toInt();
 			if (server.argName(i) == "gw_3") if (checkRange(server.arg(i))) 	config.Gateway[3] =  server.arg(i).toInt();
-			if (server.argName(i) == "dhcp") config.dhcp = true;
+			if (server.argName(i) == "dhcp") if (server.arg(i) == "on") config.dhcp = true;
 		}
 		WriteConfig();
 		ConfigureWifi();
-		AdminTimeOutCounter=0;
+		AdminTimeOutCounter=120;
 	}
 
   String state = "N/A";
@@ -88,7 +88,7 @@ void send_wifi_html()
   html.replace( "<!-- footer -->", html_footer() );
   html.replace( "@title", (String)"Wifi (" + state + ")");
   html.replace( "@ssid", (String) config.ssid );
-  html.replace( "@password",  (String) "" ); //  config.password is secret
+  html.replace( "@password",  (String) config.password ); //  config.password is secret
   html.replace( "@ip_0",  (String) config.IP[0] );
   html.replace( "@ip_1",  (String) config.IP[1] );
   html.replace( "@ip_2",  (String) config.IP[2] );
@@ -129,3 +129,4 @@ void send_ssid_json()
   server.send ( 200, "application/json", data );
   Serial.println(__FUNCTION__); 
 }
+

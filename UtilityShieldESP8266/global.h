@@ -8,21 +8,32 @@ boolean AdminEnabled = true;		    // Enable Admin Mode for a given Time
 bool LastPost = false;
 String PostResult="";
 
-volatile long lPulseLength = 0;
-volatile unsigned long lPulseCounter = 0;
-volatile unsigned long last_millis;
+volatile unsigned long lSolarPulseLength = 0;
+volatile unsigned long lWaterPulseLength = 0;
+volatile unsigned long lSolarPulseCounter = 0;
+volatile unsigned long lWaterPulseCounter = 0;
+volatile unsigned long lastSolar_millis;
+volatile unsigned long lastWater_millis;
+
 volatile long ResetWattCounter = 0;
+volatile long ResetLiterCounter = 0;
 volatile long AdminTimeOutCounter = 0;       // Counter for Disabling the AdminMode
 volatile long RebootTimecCounter = 0;
 volatile int PVOutputCounter = 0;            // Counter to keep track of time
-volatile unsigned long timestamp=0;
+volatile unsigned long timestamp = 0;
 
-const int LED_PIN = 2;              // Thing's onboard, blue LED
-const int PULSE_PIN = 14;
+#define LED_PIN    2 //d4  onboard, blue LED
+#define SOLAR_PIN 14 //d5
+#define WATER_PIN 12 //d6
+#define POWER_PIN 13 //d7
+
 const int FLASH_PIN = 0;
 
 static const uint8_t monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31}; 
 #define LEAP_YEAR(Y) ( ((1970+Y)>0) && !((1970+Y)%4) && ( ((1970+Y)%100) || !((1970+Y)%400) ) )
+
+#define VERSION_MAJOR  2
+#define VERSION_MINOR  1
 
 struct strConfig {
 	String ssid;
@@ -38,11 +49,14 @@ struct strConfig {
   String TZdbServerName;
   long Latitude;
   long Longitude;
-  unsigned long PulseCount;
+  unsigned long WaterPulseCount;
+  unsigned long SolarPulseCount;
   String TZdbApiKey;
   unsigned long timestamp;
   long Pulsesperkwh;
-	String DeviceName;
+  long Pulsesperm3;
+
 }   config;
 
 #endif
+

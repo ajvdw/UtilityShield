@@ -1,4 +1,4 @@
-const char solar_css[] PROGMEM = R"=====(
+const char solar_css[] = R"=====(
 #footer,#header{background-color:#5A79A5;color:#fff;text-align:center;padding:2px}
 body{font-family:Arial,Verdana;}
 h1{font-size:110%;}
@@ -16,3 +16,4 @@ void send_css()
   server.send( 200, "text/css", solar_css );
   Serial.println(__FUNCTION__); 
 }
+

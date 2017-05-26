@@ -2,7 +2,7 @@
 
 String html_header()
 {
-  return (String) "<!DOCTYPE html>\n<html>\n<head>\n<link href='solar.css' rel=stylesheet>\n</head>\n<body>\n<div id='header'><h1>Energy Monitor</h1></div>";
+  return (String) "<!DOCTYPE html>\n<html>\n<head>\n<link href='solar.css' rel=stylesheet>\n</head>\n<body>\n<div id='header'><h1>Solar, Water and Energy Monitor</h1></div>";
 }
 
 String html_menu()
@@ -10,7 +10,9 @@ String html_menu()
   return (String) "<div id='menu'>\n<ul>\n"+
     "<li><a href='/'>Home</a></li>\n"+
     "<li><a href='/wifi'>Wifi</a></li>\n"+
-    "<li><a href='/meter'>Meter</a></li>\n"+
+    "<li><a href='/power'>Power</a></li>\n"+
+    "<li><a href='/solar'>Solar</a></li>\n"+   
+    "<li><a href='/water'>Water</a></li>\n"+
     "<li><a href='/time'>Time</a></li>\n"+
     "<li><a href='/pvoutput'>PVOutput</a></li>\n"+
     "<li><a href='/network'>Network</a></li>\n</ul>\n</div>";
@@ -80,7 +82,9 @@ void WriteConfig()
   EEPROM.write(0,'C');
   EEPROM.write(1,'F');
   EEPROM.write(2,'G');
-
+  EEPROM.write(3,VERSION_MAJOR); 
+  EEPROM.write(4,VERSION_MINOR); 
+    
   EEPROM.write(16,config.dhcp);
   EEPROMWritelong(18,config.PostEvery); // 4 Byte
 
@@ -98,22 +102,19 @@ void WriteConfig()
   EEPROM.write(41,config.Gateway[1]);
   EEPROM.write(42,config.Gateway[2]);
   EEPROM.write(43,config.Gateway[3]);
-
   EEPROMWritelong(44,config.timestamp); // 4 Byte
-  
-  EEPROMWritelong(52,config.Pulsesperkwh); // 4 Byte
-  EEPROMWritelong(56,config.SystemId); // 4 Byte
-  EEPROMWritelong(60,config.PulseCount); // 4 Byte
-  
-  WriteStringToEEPROM(64,config.ssid);
-  WriteStringToEEPROM(96,config.password);
-  WriteStringToEEPROM(128,config.PVoutputServerName);
-  WriteStringToEEPROM(260,config.PVoutputApiKey);  
-  WriteStringToEEPROM(306,config.DeviceName);
-
-  WriteStringToEEPROM( 372, config.TZdbServerName );  
-  EEPROMWritelong( 440, config.Latitude );
-  EEPROMWritelong( 444, config.Longitude );
+  EEPROMWritelong(48,config.Pulsesperkwh); // 4 Byte
+  EEPROMWritelong(52,config.Pulsesperm3); // 4 Byte
+  EEPROMWritelong(56,config.SolarPulseCount); // 4 Byte
+  EEPROMWritelong(60,config.WaterPulseCount); // 4 Byte
+  EEPROMWritelong(64,config.SystemId); // 4 Byte
+  WriteStringToEEPROM(68,config.ssid);
+  WriteStringToEEPROM(102,config.password);
+  WriteStringToEEPROM(140,config.PVoutputServerName);
+  WriteStringToEEPROM(270,config.PVoutputApiKey); 
+  WriteStringToEEPROM(372, config.TZdbServerName );  
+  EEPROMWritelong(440, config.Latitude );
+  EEPROMWritelong(444, config.Longitude );
   WriteStringToEEPROM( 448, config.TZdbApiKey );
   
   EEPROM.commit();
@@ -121,9 +122,9 @@ void WriteConfig()
 
 boolean ReadConfig()
 {
-
+  
   Serial.println("Reading Configuration");
-  if (EEPROM.read(0) == 'C' && EEPROM.read(1) == 'F'  && EEPROM.read(2) == 'G' )
+  if (EEPROM.read(0) == 'C' && EEPROM.read(1) == 'F'  && EEPROM.read(2) == 'G' &&  EEPROM.read(3) == VERSION_MAJOR )
   {
     Serial.println("Configurarion Found!");
     config.dhcp =   EEPROM.read(16);
@@ -142,15 +143,17 @@ boolean ReadConfig()
     config.Gateway[3] = EEPROM.read(43);
 
     config.timestamp = EEPROM.read(44);
-    config.Pulsesperkwh = EEPROMReadlong(52); // 4 Byte
-    config.SystemId = EEPROMReadlong(56); // 4 Byte
-    config.PulseCount = EEPROMReadlong(60); // 4 Byte
-    config.ssid = ReadStringFromEEPROM(64);
-    config.password = ReadStringFromEEPROM(96);
-    config.PVoutputServerName = ReadStringFromEEPROM(128);  
-    config.PVoutputApiKey = ReadStringFromEEPROM(260);  
+    config.Pulsesperkwh = EEPROMReadlong(48); // 4 Byte
+    config.Pulsesperm3 = EEPROMReadlong(52); // 4 Byte
 
-    config.DeviceName= ReadStringFromEEPROM(306);
+
+    config.SolarPulseCount = EEPROMReadlong(56); // 4 Byte
+    config.WaterPulseCount = EEPROMReadlong(60); // 4 Byte
+    config.SystemId = EEPROMReadlong(64); // 4 Byte
+    config.ssid = ReadStringFromEEPROM(68);
+    config.password = ReadStringFromEEPROM(102);
+    config.PVoutputServerName = ReadStringFromEEPROM(140);  
+    config.PVoutputApiKey = ReadStringFromEEPROM(270);  
     config.TZdbServerName = ReadStringFromEEPROM(372);  
     config.Latitude = EEPROMReadlong(440);  
     config.Longitude= EEPROMReadlong(444);  
@@ -339,35 +342,67 @@ String CountDownString()
 }
 
 
-void pinChanged()
+void pinSolarChanged()
 {
   long time = millis();
   long temp = 0;
-  digitalWrite(LED_PIN, lPulseCounter%2 );
-    if( last_millis > 0  )
+
+  if( lastSolar_millis > 0  )
     {
-      temp =  (time-last_millis);
+      temp =  (time-lastSolar_millis);
     }
     if( temp > 3 ) // 3ms, antidender
     {
-      lPulseLength = temp;
-      lPulseCounter ++;  
-      last_millis =time;
+      lSolarPulseLength = temp;
+      lSolarPulseCounter ++;  
+      lastSolar_millis =time;
     }
     ResetWattCounter = 300;
 }
 
+void pinWaterChanged()
+{
+  long time = millis();
+  long temp = 0;
+
+  if( lastSolar_millis > 0  )
+    {
+      temp =  (time-lastWater_millis);
+    }
+    if( temp > 3 ) // 3ms, antidender
+    {
+      lWaterPulseLength = temp;
+      lWaterPulseCounter ++;  
+      lastWater_millis =time;
+    }
+    ResetLiterCounter = 300;
+}
+
 String WattString()
 {
-  if( lPulseLength > 0 )
-    return (String)(long)(3600000.0/(0.001*lPulseLength*config.Pulsesperkwh));
+  if( lSolarPulseLength > 0 )
+    return (String)(long)(3600000.0/(0.001*lSolarPulseLength*config.Pulsesperkwh));
   else
     return "0";
 }
 
- unsigned long WattHour()
+String LiterString()
 {
-  return (unsigned long)(1000.0 * lPulseCounter /  config.Pulsesperkwh);
+  if( lWaterPulseLength > 0 )
+    return (String)(long)(3600000.0/(0.001*lWaterPulseLength*config.Pulsesperm3));
+  else
+    return "0";
+}
+
+
+unsigned long WattHour()
+{
+  return (unsigned long)(1000.0 * lSolarPulseCounter /  config.Pulsesperkwh);
+}
+
+unsigned long LiterHour()
+{
+  return (unsigned long)(1000.0 * lWaterPulseCounter /  config.Pulsesperm3);
 }
 
 String kWhString()
@@ -379,6 +414,20 @@ String kWhString()
     wh = wh % 1000;
     
     return (String)(kwh) + "." + (String)((wh<100)?"0":"") + (String)((wh<10)?"0":"") + (String)wh;
+  }
+  else
+    return "0.000";
+}
+
+String m3hString()
+{
+  if(  config.Pulsesperm3 > 0 )
+  {
+    unsigned long lh = LiterHour();
+    unsigned long m3h = lh / 1000; 
+    lh = lh % 1000;
+    
+    return (String)(m3h) + "." + (String)((lh<100)?"0":"") + (String)((lh<10)?"0":"") + (String)lh;
   }
   else
     return "0.000";
@@ -530,7 +579,7 @@ unsigned long GetTimestamp()
 
 void Second_Tick()
 {
-  PVOutputCounter--;
+  if( PVOutputCounter ) PVOutputCounter--;
   AdminTimeOutCounter--; 
   RebootTimecCounter--;
   ResetWattCounter--;
@@ -538,3 +587,4 @@ void Second_Tick()
 
 //  digitalWrite(LED_PIN, cSecondCounter%2);
 }
+
