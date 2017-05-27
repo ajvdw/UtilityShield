@@ -235,6 +235,7 @@ String GetMacAddress()
 void ConfigureWifi()
 {
   Serial.println("Configuring Wifi");
+  
   WiFi.begin (config.ssid.c_str(), config.password.c_str());
   if (!config.dhcp)
   {
@@ -386,7 +387,7 @@ String WattString()
     return "0";
 }
 
-String LiterString()
+String LiterPerHourString()
 {
   if( lWaterPulseLength > 0 )
     return (String)(long)(3600000.0/(0.001*lWaterPulseLength*config.Pulsesperm3));
@@ -400,7 +401,7 @@ unsigned long WattHour()
   return (unsigned long)(1000.0 * lSolarPulseCounter /  config.Pulsesperkwh);
 }
 
-unsigned long LiterHour()
+unsigned long Liter()
 {
   return (unsigned long)(1000.0 * lWaterPulseCounter /  config.Pulsesperm3);
 }
@@ -419,15 +420,15 @@ String kWhString()
     return "0.000";
 }
 
-String m3hString()
+String m3String()
 {
   if(  config.Pulsesperm3 > 0 )
   {
-    unsigned long lh = LiterHour();
-    unsigned long m3h = lh / 1000; 
-    lh = lh % 1000;
+    unsigned long lt = Liter();
+    unsigned long m3 = lt / 1000; 
+    lt = lt % 1000;
     
-    return (String)(m3h) + "." + (String)((lh<100)?"0":"") + (String)((lh<10)?"0":"") + (String)lh;
+    return (String)(m3) + "." + (String)((lt<100)?"0":"") + (String)((lt<10)?"0":"") + (String)lt;
   }
   else
     return "0.000";

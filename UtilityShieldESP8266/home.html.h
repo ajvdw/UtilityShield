@@ -57,7 +57,7 @@ void send_status_json()
 {
   String data="[";
   data += "\"" + kWhString() + " kWh (" + WattString() + " Watt)\",";
-  data += "\"" + m3hString() + " m3 (" + LiterString() + " l)\",";
+  data += "\"" + m3String() + " m3 (" + LiterPerHourString() + " l/h)\",";
   data += "\"?\",";
   data += "\"" + DateTimeString() + "\",";
   data += "\"" + PostResult + " ("+CountDownString()+")\",";

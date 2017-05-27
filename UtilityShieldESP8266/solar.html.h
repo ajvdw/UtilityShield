@@ -6,7 +6,8 @@ const char solar_html[] =  R"=====(
 <form action="" method="post">
 <table>
 <tr><th>Pulses/kWh:</th><td><input type="text" id="pulsesperkwh" name="pulsesperkwh" value="@pulsesperkwh" size="4" maxlength="4" ></tr>
-<tr><th>Meter(kWh):</th><td><input type="text" id="meterkwh" name="meterkwh" value="@meterkwh" size="9" ></td></tr>
+<tr><th>Meter(kWh):</th><td><input type="checkbox" id="flg" name="flg" value="on" onclick="chk=document.getElementById('meterkwh');chk.disabled=chk.disabled?0:1;">&nbsp;
+<input type="text" id="meterkwh" name="meterkwh" value="@meterkwh" size="9" disabled></td></tr>
 <tr><th></th><td><input type="submit"  value="Save"></td></tr>
 </table>
 </form>

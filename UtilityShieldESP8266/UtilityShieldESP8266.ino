@@ -1,5 +1,3 @@
-
-
 /* 
   Solar Meter (c)2015 by A.J. van de Werken  
   Inspired by ESP_WebConfig by John Lassen. 
@@ -15,7 +13,9 @@
 #include "helpers.h"
 
 // HTML
+
 #include "css.h"
+#include "favicon.ico.h"
 #include "error.html.h"
 #include "home.html.h"
 #include "wifi.html.h"
@@ -29,14 +29,7 @@
 #define AdminTimeOut 300  // Defines the Time in Seconds, when the Admin-Mode will be diabled
 
 void setup()
-{
-  int first_time = false;
-  
-  pinMode(LED_PIN, OUTPUT);
-  digitalWrite(LED_PIN, LOW);
-//  pinMode(PULSE_PIN, INPUT_PULLUP);
-  pinMode(FLASH_PIN, INPUT_PULLUP);
-      
+{      
   EEPROM.begin(512);
   Serial.begin(115200);
   delay(500);
@@ -45,7 +38,6 @@ void setup()
 
   if (!ReadConfig())
   {
-    first_time = true;
     // DEFAULT CONFIG
     config.ssid = "MYSSID";
     config.password = "MYPASSWORD";
@@ -78,11 +70,11 @@ void setup()
 
   if (AdminEnabled)
   {
-    if( first_time ) WiFi.mode( WIFI_AP ); else WiFi.mode(WIFI_AP_STA);
+    WiFi.mode(WIFI_AP_STA);
     uint8_t mac[6];
     char apStr[18] = {0,0,0, 0,0,0, 0,0,0, 0,0,0, 0,0,0, 0,0,0};
     WiFi.macAddress(mac);
-    sprintf(apStr, "Shield %02X%02X%02X%02X",  mac[2], mac[3], mac[4], mac[5]);
+    sprintf(apStr, "Shield-%02X%02X%02X%02X",  mac[2], mac[3], mac[4], mac[5]);
     WiFi.softAP( apStr , "nosecret" );
   }
   else
@@ -91,8 +83,10 @@ void setup()
   }
 
   ConfigureWifi();
-  server.on ( "/solar.css", send_css ); 
+
   server.on ( "/", send_home_html );
+  server.on ( "/favicon.ico", send_favicon_ico );
+  server.on ( "/solar.css", send_css ); 
   server.on ( "/status", send_status_json );  
   server.on ( "/ssid", send_ssid_json );  
   server.on ( "/network", send_info_html );
@@ -111,7 +105,6 @@ void setup()
   lSolarPulseCounter = config.SolarPulseCount;
   lWaterPulseCounter = config.WaterPulseCount;
   RebootTimecCounter =  86400 * 6; // Run at least for six days before reboot
-
 
 	tkSecond.attach(1, Second_Tick);
   

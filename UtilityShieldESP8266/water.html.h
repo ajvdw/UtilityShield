@@ -6,7 +6,7 @@ const char water_html[] =  R"=====(
 <form action="" method="post">
 <table>
 <tr><th>Pulses/m3:</th><td><input type="text" id="pulsesperm3" name="pulsesperm3" value="@pulsesperm3" size="4" maxlength="4" ></tr>
-<tr><th>Meter(m3):</th><td><input type="text" id="meterm3" name="meterm3" value="@meterm3" size="9" ></td></tr>
+<tr><th>Meter(m3):</th><td><input type="checkbox" id="flg" name="flg" value="on" onclick="chk=document.getElementById('meterm3');chk.disabled=chk.disabled?0:1;">&nbsp;<input type="text" id="meterm3" name="meterm3" value="@meterm3" size="9" disabled></td></tr>
 <tr><th></th><td><input type="submit"  value="Save"></td></tr>
 </table>
 </form>
@@ -29,10 +29,10 @@ void send_water_html()
     String temp = "";
     for ( uint8_t i = 0; i < server.args(); i++ ) {
       if (server.argName(i) == "flg"){ if( server.arg(i) == "on" ) savepulsecount = true; } 
-      if (server.argName(i) == "pulsesperkwh") config.Pulsesperm3 =  server.arg(i).toInt();   
+      if (server.argName(i) == "pulsesperm3") config.Pulsesperm3 =  server.arg(i).toInt();   
       if (server.argName(i) == "meterm3" && savepulsecount )
       {
-          config.WaterPulseCount =  (long) (server.arg(i).toFloat() * config.Pulsesperkwh); 
+          config.WaterPulseCount =  (long) (server.arg(i).toFloat() * config.Pulsesperm3); 
           lWaterPulseCounter = config.WaterPulseCount;
       }    
     }
@@ -44,7 +44,7 @@ void send_water_html()
   html.replace( "<!-- footer -->", html_footer() );
   html.replace( "@title", "Water" ); 
   if( config.Pulsesperkwh > 0 )
-    html.replace( "@meterm3", m3hString() );
+    html.replace( "@meterm3", m3String() );
   else
     html.replace( "@meterm3", (String)"0");
   html.replace( "@pulsesperm3", (String)  config.Pulsesperm3 );
