@@ -3,17 +3,20 @@
   Inspired by ESP_WebConfig by John Lassen. 
 */
 #include <ESP8266WiFi.h>
-#include <WiFiClient.h>
+//#include <WiFiClient.h>
 #include <ESP8266WebServer.h>
-#include <time.h>
+#include <ESP8266HTTPClient.h>
+
 #include <Ticker.h>
 #include <EEPROM.h>
-
+#include <Time.h>
+#include <TimeLib.h>  //by Paul Stoffregen, not included in the Arduino IDE !!!
+#include <Timezone.h> //by Jack Christensen, not included in the Arduino IDE !!!
+ 
 #include "global.h"
 #include "helpers.h"
 
 // HTML
-
 #include "css.h"
 #include "favicon.ico.h"
 #include "error.html.h"
@@ -28,12 +31,17 @@
  
 #define AdminTimeOut 300  // Defines the Time in Seconds, when the Admin-Mode will be diabled
 
-void setup()
-{      
-  EEPROM.begin(512);
+void setup() 
+{
+  // put your setup code here, to run once:
   Serial.begin(115200);
-  delay(500);
- 
+    
+  
+  //if you get here you have connected to the WiFi
+  Serial.println("connected...)");
+
+  EEPROM.begin(512);
+
   Serial.println("Starting Utility Shield");
 
   if (!ReadConfig())
@@ -45,7 +53,7 @@ void setup()
     config.IP[0] = 192;config.IP[1] = 168;config.IP[2] = 1;config.IP[3] = 100;
     config.Netmask[0] = 255;config.Netmask[1] = 255;config.Netmask[2] = 255;config.Netmask[3] = 0;
     config.Gateway[0] = 192;config.Gateway[1] = 168;config.Gateway[2] = 1;config.Gateway[3] = 1;
-    config.PVoutputServerName = "";
+    config.PVoutputServerName = "http://pvoutput.org/";
     config.SolarPulseCount = 0;
     config.WaterPulseCount = 0;
     config.PostEvery =  0;
@@ -61,12 +69,7 @@ void setup()
     Serial.println("General config applied");
   }
 
-  // Get current time at location
-  unsigned long t = GetTimestamp();
-  if( t > 0 ) 
-    timestamp = t;
-  else
-    timestamp = config.timestamp;
+  timestamp = config.timestamp;
 
   if (AdminEnabled)
   {
@@ -81,7 +84,6 @@ void setup()
   {
     WiFi.mode(WIFI_STA);
   }
-
   ConfigureWifi();
 
   server.on ( "/", send_home_html );
@@ -107,9 +109,11 @@ void setup()
   RebootTimecCounter =  86400 * 6; // Run at least for six days before reboot
 
 	tkSecond.attach(1, Second_Tick);
+
+  PostPVOutput(); // Initial Call to set the time
   
-  attachInterrupt(WATER_PIN , pinWaterChanged, CHANGE );
-  attachInterrupt(SOLAR_PIN , pinSolarChanged, CHANGE );  
+  attachInterrupt(WATER_PIN , pinWaterChanged, RISING );
+  attachInterrupt(SOLAR_PIN , pinSolarChanged, RISING );  
 }
 
 void loop ( void ) 
@@ -135,6 +139,7 @@ void loop ( void )
 		if( PVOutputCounter <= 0 )
     {
       // Post
+      Serial.println("Posting to pvoutput ...");
       PostResult = PostPVOutput();
       PVOutputCounter = (config.PostEvery * 60 - timestamp %(config.PostEvery * 60));
     }
@@ -152,6 +157,9 @@ void loop ( void )
 
   if( ResetWattCounter < 0 ) 
     lSolarPulseLength = 0;
+
+  if( ResetLiterCounter < 0 ) 
+    lWaterPulseLength = 0;
     
 	server.handleClient();
 }

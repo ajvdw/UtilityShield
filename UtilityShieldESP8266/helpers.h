@@ -20,7 +20,7 @@ String html_menu()
 
 String html_footer()
 {
-  return (String) "<div id='footer'>Knowledge is Power</div>\n</body>\n</html>";
+  return (String) "<div id='footer'>Scientia potentia est</div>\n</body>\n</html>";
 }
 
 void WriteStringToEEPROM(int beginaddress, String string)
@@ -348,17 +348,17 @@ void pinSolarChanged()
   long time = millis();
   long temp = 0;
 
-  if( lastSolar_millis > 0  )
+  if( lastSolar_millis >= 0  )
     {
       temp =  (time-lastSolar_millis);
     }
-    if( temp > 3 ) // 3ms, antidender
+    if( temp > 20 ) // 20ms, anti bounce
     {
       lSolarPulseLength = temp;
       lSolarPulseCounter ++;  
       lastSolar_millis =time;
     }
-    ResetWattCounter = 300;
+    ResetWattCounter = 60;
 }
 
 void pinWaterChanged()
@@ -366,31 +366,31 @@ void pinWaterChanged()
   long time = millis();
   long temp = 0;
 
-  if( lastSolar_millis > 0  )
+  if( lastWater_millis >= 0  )
     {
       temp =  (time-lastWater_millis);
     }
-    if( temp > 3 ) // 3ms, antidender
+    if( temp > 100 ) // 100ms, anti bounce
     {
       lWaterPulseLength = temp;
       lWaterPulseCounter ++;  
       lastWater_millis =time;
     }
-    ResetLiterCounter = 300;
+    ResetLiterCounter = 60;
 }
 
 String WattString()
 {
   if( lSolarPulseLength > 0 )
-    return (String)(long)(3600000.0/(0.001*lSolarPulseLength*config.Pulsesperkwh));
+    return (String)(long)(0.5 + 3600000.0/(0.001*lSolarPulseLength*config.Pulsesperkwh));
   else
     return "0";
 }
 
-String LiterPerHourString()
+String LiterPerMinuteString()
 {
   if( lWaterPulseLength > 0 )
-    return (String)(long)(3600000.0/(0.001*lWaterPulseLength*config.Pulsesperm3));
+    return (String)(long)(0.5 + 60000.0/(0.001*lWaterPulseLength*config.Pulsesperm3));
   else
     return "0";
 }
@@ -398,12 +398,12 @@ String LiterPerHourString()
 
 unsigned long WattHour()
 {
-  return (unsigned long)(1000.0 * lSolarPulseCounter /  config.Pulsesperkwh);
+  return (unsigned long)(0.5 + 1000.0 * lSolarPulseCounter /  config.Pulsesperkwh);
 }
 
 unsigned long Liter()
 {
-  return (unsigned long)(1000.0 * lWaterPulseCounter /  config.Pulsesperm3);
+  return (unsigned long)(0.5 + 1000.0 * lWaterPulseCounter /  config.Pulsesperm3);
 }
 
 String kWhString()
@@ -436,146 +436,62 @@ String m3String()
 
 String PostPVOutput()
 {
-  WiFiClient PVOclient;
   String GETString;
-  String currentLine = ""; 
-
-  Serial.println("Connecting to PVOutput");
-
-  if (PVOclient.connect(config.PVoutputServerName.c_str(), 80)) 
-  {
-    // Build HTTP GET request
-    GETString = "GET /service/r2/addstatus.jsp?c1=1";
-    GETString += "&d=" + DateString(); 
-    GETString += "&t=" + TimeString(); 
-    GETString += "&v1="+ (String)WattHour();
-    GETString += "&v2="+ WattString();
-    GETString += "&sid="+ (String)config.SystemId;
-    GETString += "&key="+ config.PVoutputApiKey; // 
-    GETString += " HTTP/1.1";
-
-    PVOclient.println(GETString);
-    Serial.println(GETString);
-    PVOclient.println((String)"Host: "+config.PVoutputServerName);
-    Serial.println((String)"Host: "+config.PVoutputServerName);
-    PVOclient.println("Connection: close\r\n");
-    Serial.println("Connection: close\r\n");
-    
-    int i = 0;
-    while ((!PVOclient.available()) && (i < 1000)) 
-    {
-      delay(10);
-      i++;
-    }
-  }
   
-  while (PVOclient.connected()) 
-  {
-    if (PVOclient.available()) 
-    {
-      // read incoming bytes:
-      char inChar = PVOclient.read();
-      // add incoming byte to end of line:
-      currentLine += inChar;
-      
-      if( currentLine.startsWith( "OK 200:" ) )
-      {
-        PVOclient.stop();
-        return "OK";      
-      }
-      
-      // if you get a newline, clear the line:
-      if (inChar == '\n') 
-      {
-        Serial.println(currentLine);
-        currentLine = "";
-       }
-    } 
-  } 
+  // Build HTTP GET request
+  GETString = config.PVoutputServerName;
+  GETString += "/service/r2/addstatus.jsp?c1=1";
+  GETString += "&d=" + DateString(); 
+  GETString += "&t=" + TimeString(); 
+  GETString += "&v1="+ (String)WattHour();
+  GETString += "&v2="+ WattString();
+  GETString += "&sid="+ (String)config.SystemId;
+  GETString += "&key="+ config.PVoutputApiKey; // 
 
-  Serial.println(currentLine);
-  return "ERROR";
-}
+  //Serial.print("Request: "); Serial.println(GETString);
+  HTTPClient http;
 
-unsigned long GetTimestamp()
-{
-  WiFiClient DSTclient;
-  String GETString;
-  String currentLine = ""; 
-  bool readingTimestamp = false;
-  String strTimestamp = "";
+  const char * headerkeys[] = {"Date"} ;
+  size_t headerkeyssize = sizeof(headerkeys)/sizeof(char*);
+
+  //ask server to track these headers
+  http.collectHeaders(headerkeys, headerkeyssize );
   
-  Serial.println("Connecting to DST server");
+  http.begin(GETString);
+  int httpCode = http.GET();
 
-  if (DSTclient.connect(config.TZdbServerName.c_str(), 80)) 
-  {
-    // make HTTP GET request to timezonedb.com:
-    GETString += "GET /?lat=";
-    GETString += (String)(1E-6*config.Latitude); 
-    GETString += "&lng=";
-    GETString += (String)(1E-6*config.Longitude); // 
-    GETString += "&key="+config.TZdbApiKey+" HTTP/1.1";
-
-    DSTclient.println(GETString);
-    Serial.println(GETString);
-    DSTclient.println((String)"Host: "+config.TZdbServerName);
-    Serial.println((String)"Host: "+config.TZdbServerName);
-    DSTclient.println("Connection: close\r\n");
-    Serial.println("Connection: close\r\n");
+  if( http.hasHeader( "Date" ) )
+  {  
+    String GMTString = http.header("Date");
+    char tmp[81], *pt;
+    int i=0;
+    char *months = "JanFebMarAprMayJunJulAugSepOctNovDec", *m;
+    tmElements_t tm;
+    time_t t;
     
-    int i = 0;
-    while ((!DSTclient.available()) && (i < 1000)) 
+    strncpy( tmp, GMTString.c_str(), 80 );tmp[80]=0;
+    
+    pt=strtok( tmp, " :" ); // day of week
+    while( pt )
     {
-      delay(10);
-      i++;
-    }
-  }
-  while (DSTclient.connected()) 
-  {
-    if (DSTclient.available()) 
-    {
-      // read incoming bytes:
-      char inChar = DSTclient.read();
-      // add incoming byte to end of line:
-      currentLine += inChar;
-
-      // if you're currently reading the bytes of a Timestamp,
-      // add them to the Timestamp String:
-      if (readingTimestamp) {//the section below has flagged that we're getting the timestamp from server here
-        if (inChar != '<') {
-          strTimestamp += inChar;
-        }
-        else {
-          // if you got a "<" character,
-          // you've reached the end of the UTC offset:
-          readingTimestamp = false;
-          Serial.print("Timestamp in seconds: ");
-          Serial.println(strTimestamp);
-     
-          // close the connection to the server:
-          DSTclient.stop();
-          //update the internal time-zone
-          return strTimestamp.toInt();
-        }
-      }
-
-      // if you get a newline, clear the line:
-      if (inChar == '\n') 
+      switch(i)
       {
-        Serial.println(currentLine);
-        currentLine = "";
+        case 1: tm.Day=atoi(pt);  break;
+        case 2: m=strstr(months,pt); m[3]=0;if(m)tm.Month=((m-months)/3+1); break;
+        case 3: tm.Year=atoi(pt)-1970; break;
+        case 4: tm.Hour=atoi(pt); break;
+        case 5: tm.Minute=atoi(pt); break;
+        case 6: tm.Second=atoi(pt);break;
       }
-      // if the current line ends with <text>, it will
-      // be followed by the tweet:
-      if ( currentLine.endsWith("<timestamp>")) {
-        //Serial.println(currentLine);
-        readingTimestamp = true;
-        strTimestamp = "";
-      }
-    }
+      i++;
+      pt = strtok( NULL, " :" );
+    }    
+    t = makeTime(tm); //GMT
+    timestamp = CE.toLocal(t, &tcr);
   }
-
-  return 0;
+  http.end();
+  
+  return (httpCode == HTTP_CODE_OK)? "OK": "ERROR";
 }
 
 void Second_Tick()
@@ -584,6 +500,7 @@ void Second_Tick()
   AdminTimeOutCounter--; 
   RebootTimecCounter--;
   ResetWattCounter--;
+  ResetLiterCounter--;
   timestamp ++;
 
 //  digitalWrite(LED_PIN, cSecondCounter%2);

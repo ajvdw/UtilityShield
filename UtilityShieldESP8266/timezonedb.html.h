@@ -32,7 +32,7 @@ void send_tzdb_html()
       if (server.argName(i) == "lng") config.Longitude =  (long)1E6*server.arg(i).toFloat(); 
       if (server.argName(i) == "tzdbapikey") config.TZdbApiKey = urldecode( server.arg(i));  
 		}
-    timestamp = GetTimestamp();
+    //timestamp = GetTimestamp();
     config.timestamp=timestamp;
 		WriteConfig();
 
