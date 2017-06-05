@@ -56,8 +56,8 @@ void send_home_html()
 void send_status_json()
 {
   String data="[";
-  data += "\"" + kWhString() + " kWh (" + WattString() + " Watt)\",";
-  data += "\"" + m3String() + " m3 (" + LiterPerMinuteString() + " l/min)\",";
+  data += "\"" + (String)(0.001*DailyWattHourSolar()) + " kWh (" + WattString() + " Watt)\",";
+  data += "\"" + (String)(DailyLiterWater()) + " liter (" + LiterPerMinuteString() + " l/min)\",";
   data += "\"?\",";
   data += "\"" + DateTimeString() + "\",";
   data += "\"" + PostResult + " ("+CountDownString()+")\",";

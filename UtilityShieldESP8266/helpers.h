@@ -348,17 +348,18 @@ void pinSolarChanged()
   long time = millis();
   long temp = 0;
 
-  if( lastSolar_millis >= 0  )
-    {
-      temp =  (time-lastSolar_millis);
-    }
-    if( temp > 20 ) // 20ms, anti bounce
-    {
+  if( lastSolar_millis >= 0  ) temp =  (time-lastSolar_millis);
+ 
+  if( temp > 20 ) // 20ms, anti bounce
+  {
+    if( temp < 300000 )
       lSolarPulseLength = temp;
-      lSolarPulseCounter ++;  
-      lastSolar_millis =time;
-    }
-    ResetWattCounter = 60;
+    else 
+      lSolarPulseLength = 300000;
+    lSolarPulseCounter ++;  
+    lastSolar_millis = time;
+  }
+  ResetWattCounter = 300; // Fall back to 0 after 300 seconds
 }
 
 void pinWaterChanged()
@@ -366,44 +367,59 @@ void pinWaterChanged()
   long time = millis();
   long temp = 0;
 
-  if( lastWater_millis >= 0  )
-    {
-      temp =  (time-lastWater_millis);
-    }
-    if( temp > 100 ) // 100ms, anti bounce
-    {
+  if( lastWater_millis >= 0  ) temp =  (time-lastWater_millis);
+  if( temp > 150 ) // 150ms, anti bounce
+  {
+    if( temp < 60000 )
       lWaterPulseLength = temp;
-      lWaterPulseCounter ++;  
-      lastWater_millis =time;
-    }
-    ResetLiterCounter = 60;
+    else
+      lWaterPulseLength = 60000; 
+    lWaterPulseCounter ++;  
+    lastWater_millis = time;
+  }
+  ResetLiterCounter = 60; // Fall back to 0 after 60 seconds
 }
 
 String WattString()
 {
-  if( lSolarPulseLength > 0 )
+  if( lSolarPulseLength > 0 && config.Pulsesperkwh > 0 )
     return (String)(long)(0.5 + 3600000.0/(0.001*lSolarPulseLength*config.Pulsesperkwh));
   else
     return "0";
 }
 
-String LiterPerMinuteString()
+
+float LiterPerMinute()
 {
-  if( lWaterPulseLength > 0 )
-    return (String)(long)(0.5 + 60000.0/(0.001*lWaterPulseLength*config.Pulsesperm3));
+  if( lWaterPulseLength > 0 && config.Pulsesperm3 > 0 )
+    return 60000.0/(0.001*lWaterPulseLength*config.Pulsesperm3);
   else
-    return "0";
+    return 0.0;
 }
 
+String LiterPerMinuteString()
+{
+  return (String)(0.01*(long)(0.5 + 100.0*LiterPerMinute() ) );
+}
 
 unsigned long WattHour()
 {
-  return (unsigned long)(0.5 + 1000.0 * lSolarPulseCounter /  config.Pulsesperkwh);
+  return config.Pulsesperkwh > 0?(unsigned long)(0.5+1000.0*lSolarPulseCounter/config.Pulsesperkwh) : 0;
+}
+
+unsigned long DailyWattHourSolar()
+{
+  return config.Pulsesperkwh > 0?(unsigned long)(0.5+1000.0*(lSolarPulseCounter-SolarPulseCountStart)/config.Pulsesperkwh) : 0;
+}
+
+unsigned long DailyLiterWater()
+{
+  return config.Pulsesperm3 > 0?(unsigned long)(0.5+1000.0*(lWaterPulseCounter-WaterPulseCountStart)/config.Pulsesperm3) : 0;  
 }
 
 unsigned long Liter()
 {
-  return (unsigned long)(0.5 + 1000.0 * lWaterPulseCounter /  config.Pulsesperm3);
+  return config.Pulsesperm3 > 0?(unsigned long)(0.5+1000.0*lWaterPulseCounter/config.Pulsesperm3) : 0;
 }
 
 String kWhString()
@@ -437,17 +453,36 @@ String m3String()
 String PostPVOutput()
 {
   String GETString;
-  
+  static unsigned long prevWattHour = 0;
+  static unsigned long prevLiter = 0;
+  unsigned long dt =   timestamp - PVOutputPosted;
+  long power, waterflow;
+
+  power = 0.0;
+  waterflow = 0.0;
+  PVOutputPosted = timestamp;
+
+  if( dt > 0 )
+  {
+    power = 3600L * (WattHour() - prevWattHour) / dt; // Watt  
+    waterflow = 60L * (Liter() - prevLiter) / dt; // Liter per minute
+  }
+    
   // Build HTTP GET request
   GETString = config.PVoutputServerName;
   GETString += "/service/r2/addstatus.jsp?c1=1";
   GETString += "&d=" + DateString(); 
   GETString += "&t=" + TimeString(); 
   GETString += "&v1="+ (String)WattHour();
-  GETString += "&v2="+ WattString();
+  GETString += "&v2="+ (String)power;
+  GETString += "&v7="+ (String)DailyLiterWater();
+  GETString += "&v8="+ (String)waterflow;
   GETString += "&sid="+ (String)config.SystemId;
   GETString += "&key="+ config.PVoutputApiKey; // 
 
+  prevWattHour = WattHour();
+  prevLiter = Liter();
+  
   //Serial.print("Request: "); Serial.println(GETString);
   HTTPClient http;
 

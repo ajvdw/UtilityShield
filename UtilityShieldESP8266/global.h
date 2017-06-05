@@ -12,6 +12,9 @@ volatile unsigned long lSolarPulseLength = 0;
 volatile unsigned long lWaterPulseLength = 0;
 volatile unsigned long lSolarPulseCounter = 0;
 volatile unsigned long lWaterPulseCounter = 0;
+volatile unsigned long WaterPulseCountStart = 0;
+volatile unsigned long SolarPulseCountStart = 0;
+  
 volatile unsigned long lastSolar_millis;
 volatile unsigned long lastWater_millis;
 
@@ -21,6 +24,8 @@ volatile long AdminTimeOutCounter = 0;       // Counter for Disabling the AdminM
 volatile long RebootTimecCounter = 0;
 volatile int PVOutputCounter = 0;            // Counter to keep track of time
 volatile unsigned long timestamp = 0;
+volatile unsigned long PVOutputPosted = 0;
+volatile unsigned long prevDays = 0;
 
 #define LED_PIN    2 //d4  onboard, blue LED
 #define SOLAR_PIN 14 //d5
@@ -51,6 +56,8 @@ struct strConfig {
   long Longitude;
   unsigned long WaterPulseCount;
   unsigned long SolarPulseCount;
+
+  
   String TZdbApiKey;
   unsigned long timestamp;
   long Pulsesperkwh;

@@ -7,6 +7,7 @@
 #include <ESP8266WebServer.h>
 #include <ESP8266HTTPClient.h>
 
+
 #include <Ticker.h>
 #include <EEPROM.h>
 #include <Time.h>
@@ -118,6 +119,18 @@ void setup()
 
 void loop ( void ) 
 {
+  long Days = timestamp / 86400;
+
+  if( prevDays != Days )
+  {
+    // It a new day! Reset daycounters;
+    prevDays = Days;
+    WaterPulseCountStart = lWaterPulseCounter;
+    SolarPulseCountStart = lSolarPulseCounter;
+  }
+  
+  prevDays = Days;
+  
 	if (AdminEnabled)
 	{
 		if (AdminTimeOutCounter < 0)
@@ -146,21 +159,19 @@ void loop ( void )
 	}
 
   if( RebootTimecCounter < 0 && SecondsToday() > 3600*4 && Weekday() == 0 ) 
-  {   // Reboot after running for at least 6 days on Sunday, After 4  
-      config.SolarPulseCount = lSolarPulseCounter;
-      config.WaterPulseCount = lWaterPulseCounter;
-      config.timestamp = timestamp;
-      // Save pulsecounter
-      WriteConfig();
-      ESP.restart();
+  {   // Reboot after running for at least 6 days on Sunday, After 4AM
+    config.SolarPulseCount = lSolarPulseCounter;
+    config.WaterPulseCount = lWaterPulseCounter;
+    config.timestamp = timestamp;
+    // Save pulsecounter
+    WriteConfig();
+    ESP.restart();
   }
-
-  if( ResetWattCounter < 0 ) 
-    lSolarPulseLength = 0;
-
-  if( ResetLiterCounter < 0 ) 
-    lWaterPulseLength = 0;
-    
+  
+  if( ResetWattCounter < 0 ) lSolarPulseLength = 0;
+  
+  if( ResetLiterCounter < 0 ) lWaterPulseLength = 0;
+  
 	server.handleClient();
 }
 
