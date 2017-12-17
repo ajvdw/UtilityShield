@@ -5,7 +5,7 @@ ESP8266WebServer server(80);				// The Webserver
 Ticker tkSecond;
 
 boolean AdminEnabled = true;		    // Enable Admin Mode for a given Time
-bool LastPost = false;
+bool TimeValid = false;
 String PostResult="";
 
 volatile unsigned long lSolarPulseLength = 0;
@@ -27,6 +27,11 @@ volatile unsigned long timestamp = 0;
 volatile unsigned long PVOutputPosted = 0;
 volatile unsigned long prevDays = 0;
 
+bool SchmittTrigger=false;
+
+#define ST_UP_TRESHOLD  800
+#define ST_DN_TRESHOLD  450
+
 #define LED_PIN    2 //d4  onboard, blue LED
 #define SOLAR_PIN 14 //d5
 #define WATER_PIN 12 //d6
@@ -34,11 +39,8 @@ volatile unsigned long prevDays = 0;
 
 const int FLASH_PIN = 0;
 
-static const uint8_t monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31}; 
-#define LEAP_YEAR(Y) ( ((1970+Y)>0) && !((1970+Y)%4) && ( ((1970+Y)%100) || !((1970+Y)%400) ) )
-
 #define VERSION_MAJOR  2
-#define VERSION_MINOR  1
+#define VERSION_MINOR  3
 
 struct strConfig {
 	String ssid;
@@ -47,30 +49,31 @@ struct strConfig {
 	byte  Netmask[4];
 	byte  Gateway[4];
 	boolean dhcp;
-	String PVoutputServerName;
+	String TimeServerName;
   long SystemId;
   String PVoutputApiKey;
   long PostEvery;
-  String TZdbServerName;
-  long Latitude;
-  long Longitude;
   unsigned long WaterPulseCount;
   unsigned long SolarPulseCount;
-
-  
-  String TZdbApiKey;
   unsigned long timestamp;
   long Pulsesperkwh;
   long Pulsesperm3;
-
+  
+  // Timezone, daylight saving
+  byte startweek;
+  byte startday;
+  byte startmonth;
+  byte starthour;
+  byte startminute;
+  byte startoffset;
+  byte endweek;
+  byte endday;
+  byte endmonth;
+  byte endhour;
+  byte endminute;
+  byte endoffset;
 }   config;
 
-//Central European Time (Frankfurt, Paris)
-TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};     //Central European Summer Time
-TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};       //Central European Standard Time
-Timezone CE(CEST, CET);
-
-TimeChangeRule *tcr;        //pointer to the time change rule, use to get the TZ abbrev
 
 #endif
 

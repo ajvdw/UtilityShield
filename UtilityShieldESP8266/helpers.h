@@ -110,13 +110,20 @@ void WriteConfig()
   EEPROMWritelong(64,config.SystemId); // 4 Byte
   WriteStringToEEPROM(68,config.ssid);
   WriteStringToEEPROM(102,config.password);
-  WriteStringToEEPROM(140,config.PVoutputServerName);
-  WriteStringToEEPROM(270,config.PVoutputApiKey); 
-  WriteStringToEEPROM(372, config.TZdbServerName );  
-  EEPROMWritelong(440, config.Latitude );
-  EEPROMWritelong(444, config.Longitude );
-  WriteStringToEEPROM( 448, config.TZdbApiKey );
-  
+  WriteStringToEEPROM(140,config.TimeServerName);
+  WriteStringToEEPROM(270,config.PVoutputApiKey);   
+  EEPROM.write(320, config.startweek);
+  EEPROM.write(321, config.startday);
+  EEPROM.write(322, config.startmonth);
+  EEPROM.write(323, config.starthour);
+  EEPROM.write(324, config.startminute);
+  EEPROM.write(325, config.startoffset);
+  EEPROM.write(326, config.endweek);
+  EEPROM.write(327, config.endday);
+  EEPROM.write(328, config.endmonth);
+  EEPROM.write(329, config.endhour);
+  EEPROM.write(330, config.endminute);
+  EEPROM.write(331, config.endoffset); 
   EEPROM.commit();
 }
 
@@ -152,13 +159,21 @@ boolean ReadConfig()
     config.SystemId = EEPROMReadlong(64); // 4 Byte
     config.ssid = ReadStringFromEEPROM(68);
     config.password = ReadStringFromEEPROM(102);
-    config.PVoutputServerName = ReadStringFromEEPROM(140);  
-    config.PVoutputApiKey = ReadStringFromEEPROM(270);  
-    config.TZdbServerName = ReadStringFromEEPROM(372);  
-    config.Latitude = EEPROMReadlong(440);  
-    config.Longitude= EEPROMReadlong(444);  
-    config.TZdbApiKey = ReadStringFromEEPROM(448);  
-
+    config.TimeServerName = ReadStringFromEEPROM(140);    
+    config.PVoutputApiKey = ReadStringFromEEPROM(270);    
+    config.startweek=EEPROM.read(320);
+    config.startday=EEPROM.read(321);
+    config.startmonth=EEPROM.read(322);
+    config.starthour=EEPROM.read(323);
+    config.startminute=EEPROM.read(324);
+    config.startoffset=EEPROM.read(325);
+    config.endweek=EEPROM.read(326);
+    config.endday=EEPROM.read(327);
+    config.endmonth=EEPROM.read(328);
+    config.endhour=EEPROM.read(329);
+    config.endminute=EEPROM.read(330);
+    config.endoffset=EEPROM.read(331); 
+    
     return true;
     
   }
@@ -169,6 +184,15 @@ boolean ReadConfig()
   }
 }
 
+void reboot()
+{
+    config.SolarPulseCount = lSolarPulseCounter;
+    config.WaterPulseCount = lWaterPulseCounter;
+    config.timestamp = now();
+    // Save pulsecounter
+    WriteConfig();
+    ESP.restart();
+}
 
 // Check the Values is between 0-255
 boolean checkRange(String Value)
@@ -245,7 +269,7 @@ void ConfigureWifi()
 
 unsigned long Running()
 {
-  return timestamp - config.timestamp;
+  return millis()/1000;
 }
 
 String RunningString()
@@ -255,91 +279,40 @@ String RunningString()
 
 unsigned long SecondsToday()
 {
-  return  timestamp % 86400;
+  return  now() % 86400;
 }
 
 unsigned int Weekday()
 {
-  return (((timestamp/86400) + 4) % 7);  // Sunday is day 0
+  return (((now()/86400) + 4) % 7);  // Sunday is day 0
 }
 
 String DateString()
 {
-  uint8_t _year=0, _month, _day, l;
-  uint32_t days=0, t;
+  uint16_t _year=year(), _month=month(), _day=day();
 
-  t = (uint32_t)timestamp / 86400;
-  while((unsigned)(days += (LEAP_YEAR(_year) ? 366 : 365)) <= t) _year++;
-  days -= LEAP_YEAR(_year) ? 366 : 365;
-  _day = t-days;
-  
-  _month=0;
-  l=0;
-  for (_month=0; _month<12; _month++) 
-  {
-    if (_month==1) 
-    { // february
-      if (LEAP_YEAR(_year))l=29; else l=28;
-    } 
-    else 
-      l = monthDays[_month];
-      
-    if (_day >= l) _day -= l; else break;
-  }
-  return (String)(_year+1970)+(String)((_month<9)?"0":"")+(String)(_month+1)+(String)((_day<9)?"0":"")+ (String)(_day+1);
+  return (String)(_year)+(String)((_month<10)?"0":"")+(String)(_month)+(String)((_day<10)?"0":"")+ (String)(_day);
 }
 
 String TimeString()
 {
-  uint8_t _hour, _minute;
-  uint32_t t;
-
-  t = (uint32_t)timestamp / 60;
-  _minute = t % 60;
-  t /= 60; // now it is hours
-  _hour = t % 24;
+  uint16_t _hour=hour(), _minute=minute();
   return (String)((_hour<10)?"0":"")+(String)_hour + ":" + (String)((_minute<10)?"0":"") + (String)_minute;
 }
 
 
 String DateTimeString()
 {
-  uint8_t _year=0, _month, _day, _hour, _minute, _second, l;
-  uint32_t days=0, t;
-
-  t = (uint32_t)timestamp;
-  _second = t % 60;
-  t /= 60; // now it is minutes
-  _minute = t % 60;
-  t /= 60; // now it is hours
-  _hour = t % 24;
-  t /= 24; // now it is days
-  
-  while((unsigned)(days += (LEAP_YEAR(_year) ? 366 : 365)) <= t) _year++;
-
-  days -= LEAP_YEAR(_year) ? 366 : 365;
-  _day = t-days;
-  
-  _month=0;
-  l=0;
-  for (_month=0; _month<12; _month++) 
-  {
-    if (_month==1) 
-    { // february
-      if (LEAP_YEAR(_year))l=29; else l=28;
-    } 
-    else 
-      l = monthDays[_month];
-      
-    if (_day >= l) _day -= l; else break;
-  }
- 
-  return (String)(_year+1970) + "-" + (String)((_month<9)?"0":"")+(String)(_month+1) + "-" + (String)((_day<9)?"0":"")+ (String)(_day+1) + "  " + (String)_hour + ":" + (String)((_minute<10)?"0":"") + (String)_minute + ":" + (String)((_second<10)?"0":"") + (String)_second;
+  uint16_t _year=year(), _month=month(), _day=day(), _hour=hour(), _minute=minute(), _second=second();
+  return (String)(_year) + "-" + (String)((_month<10)?"0":"")+(String)(_month) + "-" + (String)((_day<10)?"0":"")+ (String)(_day) + "  " + (String)_hour + ":" + (String)((_minute<10)?"0":"") + (String)_minute + ":" + (String)((_second<10)?"0":"") + (String)_second;
 }
 
 String CountDownString()
 {
-  return (String)PVOutputCounter;
+  if( config.PostEvery  > 0 )
+    return (String)PVOutputCounter;
+  else
+    return "-";
 }
 
 
@@ -362,6 +335,7 @@ void pinSolarChanged()
   ResetWattCounter = 300; // Fall back to 0 after 300 seconds
 }
 
+
 void pinWaterChanged()
 {
   long time = millis();
@@ -380,12 +354,14 @@ void pinWaterChanged()
   ResetLiterCounter = 60; // Fall back to 0 after 60 seconds
 }
 
-String WattString()
+String Watt()
 {
+  long w;
   if( lSolarPulseLength > 0 && config.Pulsesperkwh > 0 )
-    return (String)(long)(0.5 + 3600000.0/(0.001*lSolarPulseLength*config.Pulsesperkwh));
+    w=(3600000.0/(0.001*lSolarPulseLength*config.Pulsesperkwh));
   else
-    return "0";
+    w=0;
+  return (String)w;
 }
 
 
@@ -395,11 +371,6 @@ float LiterPerMinute()
     return 60000.0/(0.001*lWaterPulseLength*config.Pulsesperm3);
   else
     return 0.0;
-}
-
-String LiterPerMinuteString()
-{
-  return (String)(0.01*(long)(0.5 + 100.0*LiterPerMinute() ) );
 }
 
 unsigned long WattHour()
@@ -450,50 +421,75 @@ String m3String()
     return "0.000";
 }
 
-String PostPVOutput()
+/*
+void readDSMR() {
+  long tl = 0;
+  long tld =0;
+
+  if (Serial.available()) {
+    input = Serial.read();
+    char inChar = (char)input;
+    // Fill buffer up to and including a new line (\n)
+    buffer[bufpos] = input&127;
+    bufpos++;
+
+    if (input == '\n') { // We received a new line (data up to \n)
+      if (sscanf(buffer,"1-0:1.8.1(%ld.%ld" ,&tl, &tld)==2){
+        tl *= 1000;
+        tl += tld;
+        //mEVLT = tl;
+      }
+
+      // 1-0:1.8.2 = Elektra verbruik hoog tarief (DSMR v4.0)
+      if (sscanf(buffer,"1-0:1.8.2(%ld.%ld" ,&tl, &tld)==2){
+        tl *= 1000;
+        tl += tld;
+        //mEVHT = tl;
+      }
+
+      // 1-0:1.7.0 = Electricity consumption actual usage (DSMR v4.0)
+      if (sscanf(buffer,"1-0:1.7.0(%ld.%ld" ,&tl , &tld) == 2)
+      { 
+        //mEAV = (tl*1000)+tld;
+      }
+
+      // 0-1:24.2.1 = Gas (DSMR v4.0) on Kaifa MA105 meter
+      if (strncmp(buffer, "0-1:24.2.1", strlen("0-1:24.2.1")) == 0) {
+        if (sscanf(strrchr(buffer, '(') + 1, "%d.%d", &tl, &tld) == 2) {
+          //mG = (tl*1000)+tld; 
+        }
+      }
+
+      // Empty buffer again (whole array)
+      for (int i=0; i<75; i++)
+      { 
+        buffer[i] = 0;
+      }
+      bufpos = 0;
+    }
+  } //Einde 'if AltSerial.available'
+} //Einde 'decodeTelegram()' functie
+
+*/
+
+bool SyncTime()
 {
   String GETString;
-  static unsigned long prevWattHour = 0;
-  static unsigned long prevLiter = 0;
-  unsigned long dt =   timestamp - PVOutputPosted;
-  long power, waterflow;
 
-  power = 0.0;
-  waterflow = 0.0;
-  PVOutputPosted = timestamp;
-
-  if( dt > 0 )
-  {
-    power = 3600L * (WattHour() - prevWattHour) / dt; // Watt  
-    waterflow = 60L * (Liter() - prevLiter) / dt; // Liter per minute
-  }
-    
-  // Build HTTP GET request
-  GETString = config.PVoutputServerName;
-  GETString += "/service/r2/addstatus.jsp?c1=1";
-  GETString += "&d=" + DateString(); 
-  GETString += "&t=" + TimeString(); 
-  GETString += "&v1="+ (String)WattHour();
-  GETString += "&v2="+ (String)power;
-  GETString += "&v7="+ (String)DailyLiterWater();
-  GETString += "&v8="+ (String)waterflow;
-  GETString += "&sid="+ (String)config.SystemId;
-  GETString += "&key="+ config.PVoutputApiKey; // 
-
-  prevWattHour = WattHour();
-  prevLiter = Liter();
+  TimeValid = false;
   
-  //Serial.print("Request: "); Serial.println(GETString);
+  // Build HTTP GET request
+  GETString = config.TimeServerName;
   HTTPClient http;
 
   const char * headerkeys[] = {"Date"} ;
   size_t headerkeyssize = sizeof(headerkeys)/sizeof(char*);
-
   //ask server to track these headers
   http.collectHeaders(headerkeys, headerkeyssize );
-  
+  Serial.println( (String)"Time url request: " + GETString );
   http.begin(GETString);
   int httpCode = http.GET();
+  Serial.println( (String)"Time url response: " + http.getString() );
 
   if( http.hasHeader( "Date" ) )
   {  
@@ -502,10 +498,11 @@ String PostPVOutput()
     int i=0;
     char *months = "JanFebMarAprMayJunJulAugSepOctNovDec", *m;
     tmElements_t tm;
-    time_t t;
+    time_t t, l;
     
     strncpy( tmp, GMTString.c_str(), 80 );tmp[80]=0;
-    
+
+    // parse date time 
     pt=strtok( tmp, " :" ); // day of week
     while( pt )
     {
@@ -521,23 +518,86 @@ String PostPVOutput()
       i++;
       pt = strtok( NULL, " :" );
     }    
-    t = makeTime(tm); //GMT
-    timestamp = CE.toLocal(t, &tcr);
+
+    // GMT
+    t = makeTime(tm); 
+
+    long startshift = config.startoffset - 12;
+    if( startshift < 0 ) startshift = startshift * 60 - config.startminute; else startshift = startshift * 60 + config.startminute;
+    
+    long endshift = config.endoffset - 12;
+    if( endshift < 0 ) endshift = endshift * 60 - config.endminute; else endshift = endshift * 60 + config.endminute;
+       
+    TimeChangeRule tcrDST = { "DST", config.startweek, config.startday+1, config.startmonth+1, config.starthour, startshift };
+    TimeChangeRule tcrSTD = { "STD", config.endweek,   config.endday+1,   config.endmonth+1,   config.endhour,   endshift   };  
+    Timezone TZ(tcrDST, tcrSTD);
+    TimeChangeRule *tcr;        
+
+    // convert to local timezone
+    l = TZ.toLocal(t, &tcr);
+
+    // adjust clock to timestamp in header
+    setTime( l ) ; 
+    TimeValid = true;   
   }
   http.end();
+  return TimeValid;
+}
+
+String PostPVOutput()
+{
+  String GETString;
+  static unsigned long prevWattHour = WattHour();
+  static unsigned long prevLiter = Liter();
+  unsigned long dt =   now() - PVOutputPosted;
+  long power;
+  float waterflow;
+
+  power = 0;
+  waterflow = 0.0;
+  PVOutputPosted = now();
+
+  if( dt > 0 )
+  {
+    power = 3600L * (WattHour() - prevWattHour) / dt;   // Watt  
+    waterflow = 60.0 * (Liter() - prevLiter) / dt;      // Liter per minute
+  }
+    
+  // Build HTTP GET request
+  GETString = "http://pvoutput.org";
+  GETString += "/service/r2/addstatus.jsp?c1=1";
+  GETString += "&d=" + DateString(); 
+  GETString += "&t=" + TimeString(); 
+  GETString += "&v1="+ (String)WattHour();
+  GETString += "&v2="+ (String)power;
+  GETString += "&v7="+ (String)DailyLiterWater();
+  GETString += "&v8="+ String(waterflow,1);
+  GETString += "&sid="+ (String)config.SystemId;
+  GETString += "&key="+ config.PVoutputApiKey; // 
   
+  prevWattHour = WattHour();
+  prevLiter = Liter();
+  
+  HTTPClient http;
+  
+  Serial.println( (String)"PVOutput request: " + GETString );
+
+  http.begin(GETString);
+  int httpCode = http.GET();
+  
+  Serial.println( (String)"PVOutput response: " + http.getString() );
+
+  http.end();
+
   return (httpCode == HTTP_CODE_OK)? "OK": "ERROR";
 }
 
 void Second_Tick()
 {
-  if( PVOutputCounter ) PVOutputCounter--;
+  PVOutputCounter--;
   AdminTimeOutCounter--; 
   RebootTimecCounter--;
   ResetWattCounter--;
   ResetLiterCounter--;
-  timestamp ++;
-
-//  digitalWrite(LED_PIN, cSecondCounter%2);
 }
 

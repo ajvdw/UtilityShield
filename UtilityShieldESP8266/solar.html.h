@@ -35,6 +35,7 @@ void send_solar_html()
       {
           config.SolarPulseCount =  (long) (server.arg(i).toFloat() * config.Pulsesperkwh); 
           lSolarPulseCounter = config.SolarPulseCount;
+          SolarPulseCountStart = lSolarPulseCounter;
       }    
     }
     WriteConfig();

@@ -34,6 +34,7 @@ void send_water_html()
       {
           config.WaterPulseCount =  (long) (server.arg(i).toFloat() * config.Pulsesperm3); 
           lWaterPulseCounter = config.WaterPulseCount;
+          WaterPulseCountStart = lWaterPulseCounter;
       }    
     }
     WriteConfig();

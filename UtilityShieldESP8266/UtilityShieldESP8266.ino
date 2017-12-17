@@ -1,16 +1,17 @@
+#include <ArduinoJson.h>
+
 /* 
-  Solar Meter (c)2015 by A.J. van de Werken  
+  Uitility Shield (c)2018 by A.J. van de Werken  
   Inspired by ESP_WebConfig by John Lassen. 
 */
+
 #include <ESP8266WiFi.h>
-//#include <WiFiClient.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266HTTPClient.h>
 
 
 #include <Ticker.h>
 #include <EEPROM.h>
-#include <Time.h>
 #include <TimeLib.h>  //by Paul Stoffregen, not included in the Arduino IDE !!!
 #include <Timezone.h> //by Jack Christensen, not included in the Arduino IDE !!!
  
@@ -28,15 +29,20 @@
 #include "solar.html.h"
 #include "water.html.h"
 #include "pvoutput.html.h"
-#include "timezonedb.html.h"
+#include "timezone.html.h"
  
 #define AdminTimeOut 300  // Defines the Time in Seconds, when the Admin-Mode will be diabled
 
 void setup() 
 {
   // put your setup code here, to run once:
-  Serial.begin(115200);
-    
+
+  //Serial.begin(115200);
+  //Serial.swap(); //GPIO15 (TX) and GPIO13 (RX)
+  //Serial.set_tx(1); // GIIO1 (TX) 
+
+  Serial.begin(9600);
+
   
   //if you get here you have connected to the WiFi
   Serial.println("connected...)");
@@ -54,7 +60,7 @@ void setup()
     config.IP[0] = 192;config.IP[1] = 168;config.IP[2] = 1;config.IP[3] = 100;
     config.Netmask[0] = 255;config.Netmask[1] = 255;config.Netmask[2] = 255;config.Netmask[3] = 0;
     config.Gateway[0] = 192;config.Gateway[1] = 168;config.Gateway[2] = 1;config.Gateway[3] = 1;
-    config.PVoutputServerName = "http://pvoutput.org/";
+    config.TimeServerName = "http://www.google.com";
     config.SolarPulseCount = 0;
     config.WaterPulseCount = 0;
     config.PostEvery =  0;
@@ -62,11 +68,21 @@ void setup()
     config.Pulsesperm3 = 1000;
     config.SystemId = 0;
 
-    config.TZdbServerName = "";  
-    config.Latitude = 0;  
-    config.Longitude= 0;  
-    config.TZdbApiKey = "";  
+    // Timezone / DST setting for Central Europe
+    config.startweek=0;
+    config.startday=0;
+    config.startmonth=2;
+    config.starthour=2;
+    config.startminute=0;
+    config.startoffset=2;
+    config.endweek=0;
+    config.endday=0;
+    config.endmonth=9;
+    config.endhour=3;
+    config.endminute=0;
+    config.endoffset=1; 
     WriteConfig();
+    
     Serial.println("General config applied");
   }
 
@@ -99,41 +115,57 @@ void setup()
   server.on ( "/pvoutput", send_pvoutput_html );
   server.on ( "/wifi", send_wifi_html );
   server.on ( "/time", send_tzdb_html );
+  server.on ( "/reboot", []() { Serial.println("Rebooting"); server.sendHeader("Location", String("/"), true); server.send ( 302, "text/plain", "Rebooting..." );  reboot(); }  );
   
   server.onNotFound ( []() { Serial.println("Page Not Found"); server.send ( 401, "text/html", "Page not Found" );   }  );
   server.begin();
   Serial.println( "HTTP server started" );
 
   AdminTimeOutCounter = AdminTimeOut;
+  
   lSolarPulseCounter = config.SolarPulseCount;
-  lWaterPulseCounter = config.WaterPulseCount;
+  SolarPulseCountStart = lSolarPulseCounter;
+  
+  lWaterPulseCounter = config.WaterPulseCount;          
+  WaterPulseCountStart = lWaterPulseCounter;
+  
   RebootTimecCounter =  86400 * 6; // Run at least for six days before reboot
 
 	tkSecond.attach(1, Second_Tick);
-
-  PostPVOutput(); // Initial Call to set the time
   
-  attachInterrupt(WATER_PIN , pinWaterChanged, RISING );
+  SyncTime(); // Initial Call to set the time
+  
   attachInterrupt(SOLAR_PIN , pinSolarChanged, RISING );  
 }
 
 void loop ( void ) 
 {
-  long Days = timestamp / 86400;
+  long Days = now() / 86400;
+  static unsigned long taskTime=millis()+50;
+  
+  if (millis()>taskTime) 
+  {
+    taskTime += 50; // limit the the number of analog reads to 20 per second
+    int sample = analogRead(A0);
+    if( sample > ST_UP_TRESHOLD && SchmittTrigger == false ) { pinWaterChanged(); SchmittTrigger = true; }
+    if( sample < ST_DN_TRESHOLD && SchmittTrigger == true ) SchmittTrigger = false;
+  }      
 
+ 
   if( prevDays != Days )
   {
     // It a new day! Reset daycounters;
     prevDays = Days;
     WaterPulseCountStart = lWaterPulseCounter;
     SolarPulseCountStart = lSolarPulseCounter;
+    SyncTime();
   }
   
   prevDays = Days;
   
-	if (AdminEnabled)
+	if( AdminEnabled )
 	{
-		if (AdminTimeOutCounter < 0)
+		if( AdminTimeOutCounter < 0 )
 		{
 			 AdminEnabled = false;
 			 Serial.println("Admin Mode disabled!");
@@ -147,25 +179,21 @@ void loop ( void )
     Serial.println("Partial admin Mode enabled!");
   }
 	
-	if (config.PostEvery  > 0 )
+	if( config.PostEvery  > 0 )
 	{
-		if( PVOutputCounter <= 0 )
+		if( PVOutputCounter < 0 )
     {
       // Post
       Serial.println("Posting to pvoutput ...");
       PostResult = PostPVOutput();
-      PVOutputCounter = (config.PostEvery * 60 - timestamp %(config.PostEvery * 60));
+      
+      PVOutputCounter = (config.PostEvery*60);
     }
 	}
 
   if( RebootTimecCounter < 0 && SecondsToday() > 3600*4 && Weekday() == 0 ) 
   {   // Reboot after running for at least 6 days on Sunday, After 4AM
-    config.SolarPulseCount = lSolarPulseCounter;
-    config.WaterPulseCount = lWaterPulseCounter;
-    config.timestamp = timestamp;
-    // Save pulsecounter
-    WriteConfig();
-    ESP.restart();
+    reboot();
   }
   
   if( ResetWattCounter < 0 ) lSolarPulseLength = 0;

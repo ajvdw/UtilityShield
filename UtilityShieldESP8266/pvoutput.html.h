@@ -5,7 +5,6 @@ const char pvoutput_html[] = R"=====(
 <h2>@title</h2>
 <form action="" method="post">
 <table>
-<tr><th>Server:</th><td><input type="text" id="pvoutputserver" name="pvoutputserver" maxlength="128" value="@pvoutputserver"></td></tr>
 <tr><th>Update:</th><td><input type="text" id="update" name="update" size="3"maxlength="6" value="@update"> minutes (0=disable)</td></tr>
 <tr><th>System ID:</th><td><input type="text" id="systemid" name="systemid" maxlength="6" value="@systemid"></td></tr>
 <tr><th>API String:</th><td><input type="text" id="apistring" name="apistring" size="40" maxlength="64" value="@apistring"></td></tr>
@@ -29,7 +28,6 @@ void send_pvoutput_html()
     }  
 		for ( uint8_t i = 0; i < server.args(); i++ ) 
 		{
-			if (server.argName(i) == "pvoutputserver") config.PVoutputServerName = urldecode( server.arg(i)); 
 			if (server.argName(i) == "update") config.PostEvery =  server.arg(i).toInt(); 
       if (server.argName(i) == "systemid") config.SystemId =  server.arg(i).toInt(); 
       if (server.argName(i) == "apistring") config.PVoutputApiKey = urldecode( server.arg(i));  
@@ -40,7 +38,6 @@ void send_pvoutput_html()
   html.replace( "<!-- menu -->", html_menu() );   
   html.replace( "<!-- footer -->", html_footer() );  
   html.replace("@title", "PVOutput");
-  html.replace("@pvoutputserver", (String) config.PVoutputServerName);
   html.replace("@update", (String) config.PostEvery);
   html.replace("@systemid", (String) config.SystemId);
   html.replace("@apistring", (String) config.PVoutputApiKey);
