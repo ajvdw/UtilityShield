@@ -124,10 +124,7 @@ void setup()
   AdminTimeOutCounter = AdminTimeOut;
   
   lSolarPulseCounter = config.SolarPulseCount;
-  SolarPulseCountStart = lSolarPulseCounter;
-  
   lWaterPulseCounter = config.WaterPulseCount;          
-  WaterPulseCountStart = lWaterPulseCounter;
   
   RebootTimecCounter =  86400 * 6; // Run at least for six days before reboot
 
@@ -140,18 +137,19 @@ void setup()
 
 void loop ( void ) 
 {
-  long Days = now() / 86400;
-  static unsigned long taskTime=millis()+50;
+  long Days;
+  unsigned long taskTime=millis()+50;
   
   if (millis()>taskTime) 
   {
-    taskTime += 50; // limit the the number of analog reads to 20 per second
     int sample = analogRead(A0);
     if( sample > ST_UP_TRESHOLD && SchmittTrigger == false ) { pinWaterChanged(); SchmittTrigger = true; }
     if( sample < ST_DN_TRESHOLD && SchmittTrigger == true ) SchmittTrigger = false;
+    taskTime = millis() + 50;
   }      
 
- 
+  Days = now() / 86400;
+  
   if( prevDays != Days )
   {
     // It a new day! Reset daycounters;
@@ -186,7 +184,6 @@ void loop ( void )
       // Post
       Serial.println("Posting to pvoutput ...");
       PostResult = PostPVOutput();
-      
       PVOutputCounter = (config.PostEvery*60);
     }
 	}
@@ -196,8 +193,7 @@ void loop ( void )
     reboot();
   }
   
-  if( ResetWattCounter < 0 ) lSolarPulseLength = 0;
-  
+  if( ResetWattCounter < 0 ) lSolarPulseLength = 0;  
   if( ResetLiterCounter < 0 ) lWaterPulseLength = 0;
   
 	server.handleClient();

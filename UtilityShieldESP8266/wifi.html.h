@@ -88,7 +88,7 @@ void send_wifi_html()
   html.replace( "<!-- footer -->", html_footer() );
   html.replace( "@title", (String)"Wifi (" + state + ")");
   html.replace( "@ssid", (String) config.ssid );
-  html.replace( "@password",  (String) config.password ); //  config.password is secret
+  html.replace( "@password",  (String)( AdminEnabled? config.password: "undisclosed" ) ); 
   html.replace( "@ip_0",  (String)( config.dhcp ? WiFi.localIP()[0]:config.IP[0] ) );
   html.replace( "@ip_1",  (String)( config.dhcp ? WiFi.localIP()[1]: config.IP[1] ) );
   html.replace( "@ip_2",  (String)( config.dhcp ? WiFi.localIP()[2]: config.IP[2] ) );
