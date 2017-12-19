@@ -5,7 +5,6 @@ const char tzdb_html[] = R"=====(
 <h2>@title</h2>
 <form action="" method="post">
 <table>
-<tr><th>Server:</th><td><input type="text" id="timeserver" name="timeserver" maxlength="128" value="@timeserver"></td></tr>
 <tr><th>Start DST:</th><td><select name="startweek">@startweek;</select><select name="startday">@startday</select>&nbsp;of&nbsp;<select name="startmonth">@startmonth</select>&nbsp;at&nbsp;<select name="starthour">@starthour</select>hrs,&nbsp;UTC&nbsp;offset&nbsp;<select name="startoffset">@startoffset</select>:<select name="startminute">@startminute</select></td></tr>
 <tr><th>End DST:</th><td><select name="endweek">@endweek;</select><select name="endday">@endday</select>&nbsp;of&nbsp;<select name="endmonth">@endmonth</select>&nbsp;at&nbsp;<select name="endhour">@endhour</select>hrs,&nbsp;UTC&nbsp;offset&nbsp;<select name="endoffset">@endoffset</select>:<select name="endminute">@endminute</select></td></tr>
 <tr><th></th><td><input type="submit" value="Save"></td></tr>
@@ -42,8 +41,6 @@ void send_tzdb_html()
       if (server.argName(i) == "endhour") config.endhour=server.arg(i).toInt();
       if (server.argName(i) == "endminute") config.endminute=server.arg(i).toInt();
       if (server.argName(i) == "endoffset") config.endoffset=server.arg(i).toInt();   
-      if (server.argName(i) == "timeserver") config.TimeServerName = urldecode( server.arg(i)); 
-   
 		}
     //timestamp = GetTimestamp();
     config.timestamp=timestamp;
@@ -55,8 +52,6 @@ void send_tzdb_html()
   html.replace( "<!-- footer -->", html_footer() );
 
   html.replace("@title", "Timezone");
-  html.replace("@timeserver", (String) config.TimeServerName);
-
   options=""; for( int i=0; i<5; i++ ){ options += (String)"<option " + (String)((config.startweek==i)?"selected":"") + (String)" value='" + (String)i + (String)"'>" + weeks[i] + (String)"</option>"; }
   html.replace("@startweek", options );
   options=""; for( int i=0; i<12; i++ ){ options += (String)"<option " + (String)((config.startmonth==i)?"selected":"") + (String)" value='" + (String)i +(String)"'>" + months[i] + (String)"</option>"; }

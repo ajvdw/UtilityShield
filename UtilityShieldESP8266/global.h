@@ -7,7 +7,8 @@ Ticker tkSecond;
 boolean AdminEnabled = true;		    // Enable Admin Mode for a given Time
 bool TimeValid = false;
 String PostResult="";
-
+unsigned long taskTime=0;
+  
 volatile unsigned long lSolarPulseLength = 0;
 volatile unsigned long lWaterPulseLength = 0;
 volatile unsigned long lSolarPulseCounter = 0;
@@ -49,7 +50,7 @@ struct strConfig {
 	byte  Netmask[4];
 	byte  Gateway[4];
 	boolean dhcp;
-	String TimeServerName;
+
   long SystemId;
   String PVoutputApiKey;
   long PostEvery;

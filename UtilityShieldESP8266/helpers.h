@@ -110,7 +110,7 @@ void WriteConfig()
   EEPROMWritelong(64,config.SystemId); // 4 Byte
   WriteStringToEEPROM(68,config.ssid);
   WriteStringToEEPROM(102,config.password);
-  WriteStringToEEPROM(140,config.TimeServerName);
+
   WriteStringToEEPROM(270,config.PVoutputApiKey);   
   EEPROM.write(320, config.startweek);
   EEPROM.write(321, config.startday);
@@ -159,7 +159,7 @@ boolean ReadConfig()
     config.SystemId = EEPROMReadlong(64); // 4 Byte
     config.ssid = ReadStringFromEEPROM(68);
     config.password = ReadStringFromEEPROM(102);
-    config.TimeServerName = ReadStringFromEEPROM(140);    
+ 
     config.PVoutputApiKey = ReadStringFromEEPROM(270);    
     config.startweek=EEPROM.read(320);
     config.startday=EEPROM.read(321);
@@ -479,17 +479,19 @@ bool SyncTime()
   TimeValid = false;
   
   // Build HTTP GET request
-  GETString = config.TimeServerName;
+  GETString = "http://pvoutput.org";
+  GETString += "/service/r2/getsystem.jsp";
+  GETString += "?sid="+ (String)config.SystemId;
+  GETString += "&key="+ config.PVoutputApiKey; 
+
   HTTPClient http;
 
   const char * headerkeys[] = {"Date"} ;
   size_t headerkeyssize = sizeof(headerkeys)/sizeof(char*);
   //ask server to track these headers
   http.collectHeaders(headerkeys, headerkeyssize );
-  Serial.println( (String)"Time url request: " + GETString );
   http.begin(GETString);
   int httpCode = http.GET();
-  Serial.println( (String)"Time url response: " + http.getString() );
 
   if( http.hasHeader( "Date" ) )
   {  
@@ -580,12 +582,10 @@ String PostPVOutput()
   
   HTTPClient http;
   
-  Serial.println( (String)"PVOutput request: " + GETString );
-
   http.begin(GETString);
   int httpCode = http.GET();
   
-  Serial.println( (String)"PVOutput response: " + http.getString() );
+  //Serial.println( (String)"PVOutput response: " + http.getString() );
 
   http.end();
 
