@@ -124,7 +124,9 @@ void setup()
   AdminTimeOutCounter = AdminTimeOut;
   
   lSolarPulseCounter = config.SolarPulseCount;
-  lWaterPulseCounter = config.WaterPulseCount;          
+  lWaterPulseCounter = config.WaterPulseCount;   
+
+  // Set day counters       
   SolarPulseCountStart = lSolarPulseCounter;
   WaterPulseCountStart = lWaterPulseCounter;
       
@@ -133,6 +135,8 @@ void setup()
 	tkSecond.attach(1, Second_Tick);
   
   SyncTime(); // Initial Call to set the time
+
+  prevDays = now() / 86400;
   
   attachInterrupt(SOLAR_PIN , pinSolarChanged, RISING );  
 }

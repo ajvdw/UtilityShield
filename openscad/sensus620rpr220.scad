@@ -1,7 +1,6 @@
-/* Designed by A.J. v.d. Werken, May 2017           */
-/* Inductive Proximity Sensor Switch NPN DC 6V-36V  */
-/* LJ12A3-4-Z/BX - find it on Ebay for approx. $2   */
-/* Fits on a Sensus 620 Watermeter (Vitens)         */
+/* Designed by A.J. v.d. Werken, Oct 2017    */
+/* Optial sensor RPR220 - find it on Ebay    */
+/* Fits on a Sensus 620 Watermeter (Vitens)  */
 
 $fn=180;
 

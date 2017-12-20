@@ -20,7 +20,7 @@ String html_menu()
 
 String html_footer()
 {
-  return (String) "<div id='footer'>Scientia potentia est</div>\n</body>\n</html>";
+  return (String) "<div id='footer'>www.github.com/ajvdw</div>\n</body>\n</html>";
 }
 
 void WriteStringToEEPROM(int beginaddress, String string)
