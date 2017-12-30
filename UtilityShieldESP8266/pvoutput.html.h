@@ -17,23 +17,23 @@ const char pvoutput_html[] = R"=====(
 
 void send_pvoutput_html()
 {
-	String html = pvoutput_html;
-	 
-	if (server.args() > 0 )  // Save Settings
-	{
+  String html = pvoutput_html;
+  
+  if (server.args() > 0 )  // Save Settings
+  {
     if( !AdminEnabled )
     {
       send_error_html();
       return;
     }  
-		for ( uint8_t i = 0; i < server.args(); i++ ) 
-		{
-			if (server.argName(i) == "update") config.PostEvery =  server.arg(i).toInt(); 
+    for ( uint8_t i = 0; i < server.args(); i++ ) 
+    {
+      if (server.argName(i) == "update") config.PostEvery =  server.arg(i).toInt(); 
       if (server.argName(i) == "systemid") config.SystemId =  server.arg(i).toInt(); 
       if (server.argName(i) == "apistring") config.PVoutputApiKey = urldecode( server.arg(i));  
-		}
-		WriteConfig();
-	}
+    }
+    WriteConfig();
+  }
   html.replace( "<!-- header -->", html_header() );
   html.replace( "<!-- menu -->", html_menu() );   
   html.replace( "<!-- footer -->", html_footer() );  
@@ -41,10 +41,8 @@ void send_pvoutput_html()
   html.replace("@update", (String) config.PostEvery);
   html.replace("@systemid", (String) config.SystemId);
   html.replace("@apistring", (String) config.PVoutputApiKey);
-
-	server.send ( 200, "text/html", html ); 
-	Serial.println(__FUNCTION__); 
+  
+  server.send ( 200, "text/html", html ); 
+  Serial.println(__FUNCTION__); 
 }
-
-
 
