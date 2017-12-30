@@ -14,7 +14,7 @@ xmlhttp.onreadystatechange=function()
     var arr = JSON.parse(xmlhttp.responseText);
     var i; var out = ''; 
     for(i = 0; i < arr.length; i+=2) 
-       out += '<a href=javascript:selssid(\"'+arr[i]+'\")>'+arr[i+1]+'</a><br>'; 
+    out += '<a href=javascript:selssid(\"'+arr[i]+'\")>'+arr[i+1]+'</a><br>'; 
     document.getElementById('ssids').innerHTML = out; 
   }
 };
@@ -44,36 +44,37 @@ xmlhttp.open('GET', 'ssid', true); xmlhttp.send();
 
 void send_wifi_html()
 {
-	String html = wifi_html;
-	if (server.args() > 0 )  // Save Settings
-	{
-    if( !AdminEnabled ){
+  String html = wifi_html;
+  if (server.args() > 0 )  // Save Settings
+  {
+    if( !AdminEnabled )
+    {
       send_error_html();
       return;
     }
-		config.dhcp = false;
-		for ( uint8_t i = 0; i < server.args(); i++ ) {
-			if (server.argName(i) == "ssid") config.ssid = urldecode(server.arg(i));
-			if (server.argName(i) == "password") config.password = urldecode(server.arg(i)); 
-			if (server.argName(i) == "ip_0") if (checkRange(server.arg(i))) 	config.IP[0] =  server.arg(i).toInt();
-			if (server.argName(i) == "ip_1") if (checkRange(server.arg(i))) 	config.IP[1] =  server.arg(i).toInt();
-			if (server.argName(i) == "ip_2") if (checkRange(server.arg(i))) 	config.IP[2] =  server.arg(i).toInt();
-			if (server.argName(i) == "ip_3") if (checkRange(server.arg(i))) 	config.IP[3] =  server.arg(i).toInt();
-			if (server.argName(i) == "nm_0") if (checkRange(server.arg(i))) 	config.Netmask[0] =  server.arg(i).toInt();
-			if (server.argName(i) == "nm_1") if (checkRange(server.arg(i))) 	config.Netmask[1] =  server.arg(i).toInt();
-			if (server.argName(i) == "nm_2") if (checkRange(server.arg(i))) 	config.Netmask[2] =  server.arg(i).toInt();
-			if (server.argName(i) == "nm_3") if (checkRange(server.arg(i))) 	config.Netmask[3] =  server.arg(i).toInt();
-			if (server.argName(i) == "gw_0") if (checkRange(server.arg(i))) 	config.Gateway[0] =  server.arg(i).toInt();
-			if (server.argName(i) == "gw_1") if (checkRange(server.arg(i))) 	config.Gateway[1] =  server.arg(i).toInt();
-			if (server.argName(i) == "gw_2") if (checkRange(server.arg(i))) 	config.Gateway[2] =  server.arg(i).toInt();
-			if (server.argName(i) == "gw_3") if (checkRange(server.arg(i))) 	config.Gateway[3] =  server.arg(i).toInt();
-			if (server.argName(i) == "dhcp") if (server.arg(i) == "on") config.dhcp = true;
-		}
-		WriteConfig();
-		ConfigureWifi();
-		AdminTimeOutCounter=120;
-	}
-
+    config.dhcp = false;
+    for ( uint8_t i = 0; i < server.args(); i++ ) {
+      if (server.argName(i) == "ssid") config.ssid = urldecode(server.arg(i));
+      if (server.argName(i) == "password") config.password = urldecode(server.arg(i)); 
+      if (server.argName(i) == "ip_0") if (checkRange(server.arg(i))) 	config.IP[0] =  server.arg(i).toInt();
+      if (server.argName(i) == "ip_1") if (checkRange(server.arg(i))) 	config.IP[1] =  server.arg(i).toInt();
+      if (server.argName(i) == "ip_2") if (checkRange(server.arg(i))) 	config.IP[2] =  server.arg(i).toInt();
+      if (server.argName(i) == "ip_3") if (checkRange(server.arg(i))) 	config.IP[3] =  server.arg(i).toInt();
+      if (server.argName(i) == "nm_0") if (checkRange(server.arg(i))) 	config.Netmask[0] =  server.arg(i).toInt();
+      if (server.argName(i) == "nm_1") if (checkRange(server.arg(i))) 	config.Netmask[1] =  server.arg(i).toInt();
+      if (server.argName(i) == "nm_2") if (checkRange(server.arg(i))) 	config.Netmask[2] =  server.arg(i).toInt();
+      if (server.argName(i) == "nm_3") if (checkRange(server.arg(i))) 	config.Netmask[3] =  server.arg(i).toInt();
+      if (server.argName(i) == "gw_0") if (checkRange(server.arg(i))) 	config.Gateway[0] =  server.arg(i).toInt();
+      if (server.argName(i) == "gw_1") if (checkRange(server.arg(i))) 	config.Gateway[1] =  server.arg(i).toInt();
+      if (server.argName(i) == "gw_2") if (checkRange(server.arg(i))) 	config.Gateway[2] =  server.arg(i).toInt();
+      if (server.argName(i) == "gw_3") if (checkRange(server.arg(i))) 	config.Gateway[3] =  server.arg(i).toInt();
+      if (server.argName(i) == "dhcp") if (server.arg(i) == "on") config.dhcp = true;
+    }
+    WriteConfig();
+    ConfigureWifi();
+    AdminTimeOutCounter=120;
+  }
+  
   String state = "N/A";
   if (WiFi.status() == 0) state = "idle";
   else if (WiFi.status() == 1) state = "no ssid available";
@@ -103,25 +104,25 @@ void send_wifi_html()
   html.replace( "@gw_3",  (String)( config.dhcp ? WiFi.gatewayIP()[3] : config.Gateway[3]) );
   html.replace( "@dhcp",  (String)( config.dhcp ? "checked" : "") ) ;
   
-	server.send ( 200, "text/html", html ); 
-
-	Serial.println(__FUNCTION__); 
+  server.send ( 200, "text/html", html ); 
+  
+  Serial.println(__FUNCTION__); 
 }
 
 void send_ssid_json()
 {
   int n = WiFi.scanNetworks();
-
+  
   String data="[";
-
+  
   for (int i = 0; i < n; ++i )
   {
-      int quality=0;
-      if(WiFi.RSSI(i) <= -100) quality = 0;
-      else if(WiFi.RSSI(i) >= -50) quality = 100;
-      else quality = 2 * (WiFi.RSSI(i) + 100);
-
-      if( i ) data += ", ";
+    int quality=0;
+    if(WiFi.RSSI(i) <= -100) quality = 0;
+    else if(WiFi.RSSI(i) >= -50) quality = 100;
+    else quality = 2 * (WiFi.RSSI(i) + 100);
+    
+    if( i ) data += ", ";
       data += "\"" + String(WiFi.SSID(i)) + "\", \""  +  String(WiFi.SSID(i)) + " (" + String(quality) +"%)" + String((WiFi.encryptionType(i) == ENC_TYPE_NONE)?"":"*") + "\"" ;
   } 
   data += "]";
