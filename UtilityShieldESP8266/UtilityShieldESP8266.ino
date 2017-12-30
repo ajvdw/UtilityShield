@@ -30,6 +30,7 @@
 #include "water.html.h"
 #include "pvoutput.html.h"
 #include "timezone.html.h"
+#include "weather.html.h"
  
 #define AdminTimeOut 300  // Defines the Time in Seconds, when the Admin-Mode will be diabled
 
@@ -67,6 +68,10 @@ void setup()
     config.Pulsesperkwh = 1000;
     config.Pulsesperm3 = 1000;
     config.SystemId = 0;
+    
+    config.GetEvery = 0;
+    config.Location = "";
+    config.WUApiKey = "";
 
     // Timezone / DST setting for Central Europe
     config.startweek=0;
@@ -113,6 +118,7 @@ void setup()
   server.on ( "/solar", send_solar_html );
   server.on ( "/water", send_water_html );
   server.on ( "/pvoutput", send_pvoutput_html );
+  server.on ( "/weather", send_weather_html );
   server.on ( "/wifi", send_wifi_html );
   server.on ( "/time", send_tzdb_html );
   server.on ( "/reboot", []() { Serial.println("Rebooting"); server.sendHeader("Location", String("/"), true); server.send ( 302, "text/plain", "Rebooting..." );  reboot(); }  );
@@ -139,6 +145,7 @@ void setup()
   prevDays = now() / 86400;
   
   attachInterrupt(SOLAR_PIN , pinSolarChanged, RISING );  
+  
 }
 
 void loop ( void ) 
@@ -181,7 +188,19 @@ void loop ( void )
     AdminEnabled = true;         
     Serial.println("Partial admin Mode enabled!");
   }
-	
+
+  if( config.GetEvery  > 0 )
+  {
+    if( WUndergroundCounter < 0 )
+    {
+      // Get
+      Serial.println("Getting the weather ...");
+      GetResult = GetWeather();
+      WUndergroundCounter = (config.GetEvery*60);
+    }
+  }
+
+  
 	if( config.PostEvery  > 0 )
 	{
 		if( PVOutputCounter < 0 )

@@ -14,7 +14,8 @@ function update_status()
        document.getElementById("water").innerHTML=arr[1];
        document.getElementById("energy").innerHTML=arr[2];
        document.getElementById("datetime").innerHTML=arr[3];
-       document.getElementById("upload").innerHTML=arr[4];
+       document.getElementById("downupload").innerHTML=arr[4];
+       document.getElementById("weather").innerHTML=arr[5];
     }
   }
   xmlhttp.open("GET","status",true);xmlhttp.send();
@@ -31,7 +32,8 @@ update_status();
 <tr><th>Solar:</th><td id=solar></td></tr>
 <tr><th>Water:</th><td id=water></td></tr>
 <tr><th>Energy:</th><td id=energy></td></tr>
-<tr><th>Upload:</th><td id=upload></td></tr>
+<tr><th>Weather:</th><td id=weather></td></tr>
+<tr><th>WU/PVO:</th><td id=downupload></td></tr>
 </table>
 </div>
 <!-- footer -->
@@ -56,16 +58,18 @@ void send_home_html()
 void send_status_json()
 {
   String data="[";
-  data += "\"" + String(0.001*DailyWattHourSolar(),3) + " kWh (" + Watt() + " W)\",";
-  data += "\"" + (String)(DailyLiterWater()) + " L (" + String(LiterPerMinute(),1) + " L/min)\",";
-  data += "\"?\",";
+  data += String("\"") + String(0.001*DailyWattHourSolar(),3) + " kWh (" + Watt() + " W)\",";
+  data += String("\"") + (String)(DailyLiterWater()) + " L (" + String(LiterPerMinute(),1) + " L/min)\",";
+  data += String("\"?\",");
   if( TimeValid )
-    data += "\"" + DateTimeString() + "\",";
+    data += String("\"") + DateTimeString() + "\",";
   else
-    data += "\"?\",";
-  data += "\"" + PostResult + " ("+CountDownString()+")\",";
-  data += "\"" + RunningString() + "\"";
-  data += "]";
+    data += String("\"?\",");
+  data += String("\"") + GetResult + "/" + PostResult + "\",";
+  
+  data += String("\"") + weatherString() + "\",";
+  data += String("\"") + RunningString() + "\"";
+  data += String("]");
   server.send ( 200, "application/json", data );
   Serial.println(__FUNCTION__); 
 }

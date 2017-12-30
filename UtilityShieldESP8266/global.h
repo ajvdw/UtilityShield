@@ -6,7 +6,8 @@ Ticker tkSecond;
 
 boolean AdminEnabled = true;		    // Enable Admin Mode for a given Time
 bool TimeValid = false;
-String PostResult="";
+String PostResult="?";
+String GetResult="?";
 unsigned long taskTime=0;
   
 volatile unsigned long lSolarPulseLength = 0;
@@ -24,9 +25,16 @@ volatile long ResetLiterCounter = 0;
 volatile long AdminTimeOutCounter = 0;       // Counter for Disabling the AdminMode
 volatile long RebootTimecCounter = 0;
 volatile int PVOutputCounter = 0;            // Counter to keep track of time
+volatile int WUndergroundCounter = 0;            // Counter to keep track of time
 volatile unsigned long timestamp = 0;
 volatile unsigned long PVOutputPosted = 0;
 volatile unsigned long prevDays = 0;
+
+String WUTemp = "0.0";
+String WURaintoday = "0";
+String WULocation = "";
+String WUWindSpeed = "0";
+String WUWindDir = "";
 
 bool SchmittTrigger=false;
 
@@ -59,6 +67,10 @@ struct strConfig {
   unsigned long timestamp;
   long Pulsesperkwh;
   long Pulsesperm3;
+
+  long GetEvery;
+  String Location;
+  String WUApiKey;
   
   // Timezone, daylight saving
   byte startweek;

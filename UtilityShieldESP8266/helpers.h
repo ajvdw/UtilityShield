@@ -1,5 +1,6 @@
 #include "global.h"
 
+
 String html_header()
 {
   return (String) "<!DOCTYPE html>\n<html>\n<head>\n<link href='solar.css' rel=stylesheet>\n</head>\n<body>\n<div id='header'><h1>Solar, Water and Energy Monitor</h1></div>";
@@ -14,6 +15,7 @@ String html_menu()
     "<li><a href='/solar'>Solar</a></li>\n"+   
     "<li><a href='/water'>Water</a></li>\n"+
     "<li><a href='/time'>Time</a></li>\n"+
+    "<li><a href='/weather'>Weather</a></li>\n"+
     "<li><a href='/pvoutput'>PVOutput</a></li>\n"+
     "<li><a href='/network'>Network</a></li>\n</ul>\n</div>";
 }
@@ -124,6 +126,10 @@ void WriteConfig()
   EEPROM.write(329, config.endhour);
   EEPROM.write(330, config.endminute);
   EEPROM.write(331, config.endoffset); 
+
+  EEPROMWritelong(332, config.GetEvery);
+  WriteStringToEEPROM( 336, config.WUApiKey);
+  WriteStringToEEPROM( 370, config.Location);
   EEPROM.commit();
 }
 
@@ -173,6 +179,10 @@ boolean ReadConfig()
     config.endhour=EEPROM.read(329);
     config.endminute=EEPROM.read(330);
     config.endoffset=EEPROM.read(331); 
+    
+    config.GetEvery =EEPROMReadlong(332);
+    config.WUApiKey = ReadStringFromEEPROM(336);
+    config.Location = ReadStringFromEEPROM(370); 
     
     return true;
     
@@ -546,6 +556,96 @@ bool SyncTime()
   return TimeValid;
 }
 
+String GetWeather()
+{
+  String GETString;
+  GETString = "http://api.wunderground.com/api/";
+  GETString += config.WUApiKey;
+  GETString += "/geolookup/conditions/q/IA/";
+  GETString += config.Location + ".json";
+  
+  HTTPClient http;
+  
+  http.begin(GETString);
+  int httpCode = http.GET();
+
+Serial.println( httpCode );
+  if( httpCode == 200 )
+  {
+    int start;
+    int semicolon;
+    int comma;    
+
+    String response = http.getString(); 
+    String pair;
+    
+    start = response.indexOf( "\"city\":" );
+    if( start > 0 )
+    {
+      pair = response.substring(start,start+135);
+      semicolon = pair.indexOf( ":" );
+      comma = pair.indexOf(",");
+      if( semicolon > 0 && comma > 0 )
+      WULocation = pair.substring(semicolon+2,comma-1);
+      //Serial.println( WULocation );
+    }    
+
+    start = response.indexOf( "\"temp_c\":" );
+    if( start > 0 )
+    {
+      pair = response.substring(start,start+32);
+      semicolon = pair.indexOf( ":" );
+      comma = pair.indexOf(",");
+      if( semicolon > 0 && comma > 0 )
+      WUTemp = pair.substring(semicolon+1,comma);
+    }   
+
+    start = response.indexOf( "\"precip_today_metric\":" );
+    if( start > 0 )
+    {
+      pair = response.substring(start,start+32);
+      semicolon = pair.indexOf( ":" );
+      comma = pair.indexOf(",");
+      if( semicolon > 0 && comma > 0 )
+      WURaintoday = pair.substring(semicolon+2,comma-1);
+    }    
+
+    start = response.indexOf( "\"wind_dir\":" );
+    if( start > 0 )
+    {
+      pair = response.substring(start,start+32);
+      semicolon = pair.indexOf( ":" );
+      comma = pair.indexOf(",");
+      if( semicolon > 0 && comma > 0 )
+      WUWindDir = pair.substring(semicolon+2,comma-1);
+    }    
+
+
+    start = response.indexOf( "\"wind_kph\":" );
+    if( start > 0 )
+    {
+      pair = response.substring(start,start+32);
+      semicolon = pair.indexOf( ":" );
+      comma = pair.indexOf(",");
+      if( semicolon > 0 && comma > 0 )
+      WUWindSpeed = pair.substring(semicolon+1,comma);
+
+    } 
+     
+  }
+
+  
+  http.end();
+
+  return (httpCode == HTTP_CODE_OK)? "OK": "ERROR";
+}
+
+String weatherString()
+{
+  String Result = WUTemp + "C " + WURaintoday + "mm " + WUWindSpeed + "km/h " + WUWindDir;
+  return Result;
+}
+
 String PostPVOutput()
 {
   String GETString;
@@ -572,8 +672,10 @@ String PostPVOutput()
   GETString += "&t=" + TimeString(); 
   GETString += "&v1="+ (String)WattHour();
   GETString += "&v2="+ (String)power;
+  GETString += "&v5="+ (String)WUTemp;
   GETString += "&v7="+ (String)DailyLiterWater();
   GETString += "&v8="+ String(waterflow,1);
+  GETString += "&v11="+ String(WUWindSpeed);
   GETString += "&sid="+ (String)config.SystemId;
   GETString += "&key="+ config.PVoutputApiKey; // 
   
@@ -595,9 +697,11 @@ String PostPVOutput()
 void Second_Tick()
 {
   PVOutputCounter--;
+  WUndergroundCounter--;
   AdminTimeOutCounter--; 
   RebootTimecCounter--;
   ResetWattCounter--;
   ResetLiterCounter--;
 }
+
 
