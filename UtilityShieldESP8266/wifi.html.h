@@ -14,7 +14,7 @@ xmlhttp.onreadystatechange=function()
     var arr = JSON.parse(xmlhttp.responseText);
     var i; var out = ''; 
     for(i = 0; i < arr.length; i+=2) 
-    out += '<a href=javascript:selssid(\"'+arr[i]+'\")>'+arr[i+1]+'</a><br>'; 
+      out += '<a href=javascript:selssid(\"'+arr[i]+'\")>'+arr[i+1]+'</a><br>'; 
     document.getElementById('ssids').innerHTML = out; 
   }
 };
