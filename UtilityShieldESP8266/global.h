@@ -31,7 +31,7 @@ volatile unsigned long PVOutputPosted = 0;
 volatile unsigned long prevDays = 0;
 
 String WUTemp = "0.0";
-String WURaintoday = "0";
+String WURain = "0";
 String WULocation = "";
 String WUWindSpeed = "0";
 String WUWindDir = "";
@@ -49,7 +49,7 @@ bool SchmittTrigger=false;
 const int FLASH_PIN = 0;
 
 #define VERSION_MAJOR  2
-#define VERSION_MINOR  3
+#define VERSION_MINOR  4
 
 struct strConfig {
 	String ssid;

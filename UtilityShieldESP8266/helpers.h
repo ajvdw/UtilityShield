@@ -569,7 +569,7 @@ String GetWeather()
   http.begin(GETString);
   int httpCode = http.GET();
 
-Serial.println( httpCode );
+//Serial.println( httpCode );
   if( httpCode == 200 )
   {
     int start;
@@ -586,8 +586,7 @@ Serial.println( httpCode );
       semicolon = pair.indexOf( ":" );
       comma = pair.indexOf(",");
       if( semicolon > 0 && comma > 0 )
-      WULocation = pair.substring(semicolon+2,comma-1);
-      //Serial.println( WULocation );
+        WULocation = pair.substring(semicolon+2,comma-1);
     }    
 
     start = response.indexOf( "\"temp_c\":" );
@@ -597,17 +596,19 @@ Serial.println( httpCode );
       semicolon = pair.indexOf( ":" );
       comma = pair.indexOf(",");
       if( semicolon > 0 && comma > 0 )
-      WUTemp = pair.substring(semicolon+1,comma);
+        WUTemp = pair.substring(semicolon+1,comma);
     }   
 
-    start = response.indexOf( "\"precip_today_metric\":" );
+
+    start = response.indexOf( "\"precip_1hr_metric\":" );
     if( start > 0 )
     {
       pair = response.substring(start,start+32);
       semicolon = pair.indexOf( ":" );
       comma = pair.indexOf(",");
       if( semicolon > 0 && comma > 0 )
-      WURaintoday = pair.substring(semicolon+2,comma-1);
+        WURain = pair.substring(semicolon+2,comma-1);
+
     }    
 
     start = response.indexOf( "\"wind_dir\":" );
@@ -617,7 +618,7 @@ Serial.println( httpCode );
       semicolon = pair.indexOf( ":" );
       comma = pair.indexOf(",");
       if( semicolon > 0 && comma > 0 )
-      WUWindDir = pair.substring(semicolon+2,comma-1);
+        WUWindDir = pair.substring(semicolon+2,comma-1);
     }    
 
 
@@ -628,7 +629,7 @@ Serial.println( httpCode );
       semicolon = pair.indexOf( ":" );
       comma = pair.indexOf(",");
       if( semicolon > 0 && comma > 0 )
-      WUWindSpeed = pair.substring(semicolon+1,comma);
+        WUWindSpeed = pair.substring(semicolon+1,comma);
 
     } 
      
@@ -642,7 +643,7 @@ Serial.println( httpCode );
 
 String weatherString()
 {
-  String Result = WUTemp + "C " + WURaintoday + "mm " + WUWindSpeed + "km/h " + WUWindDir;
+  String Result = WUTemp + "&deg;C " + WURain + " mm/h " + WUWindSpeed + " km/h " + WUWindDir;
   return Result;
 }
 
