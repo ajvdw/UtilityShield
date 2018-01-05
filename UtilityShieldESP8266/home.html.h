@@ -60,7 +60,7 @@ void send_status_json()
   String data="[";
   data += String("\"") + String(0.001*DailyWattHourSolar(),3) + " kWh (" + Watt() + " W)\",";
   data += String("\"") + (String)(DailyLiterWater()) + " L (" + String(LiterPerMinute(),1) + " L/min)\",";
-  data += String("\"?\",");
+  data += String("\"") + String(0.001*energyEVHT,3) + " kWh (" + (energyEAV-energyEAT) + " W)\",";
   if( TimeValid )
     data += String("\"") + DateTimeString() + "\",";
   else

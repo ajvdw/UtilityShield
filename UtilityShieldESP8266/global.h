@@ -1,6 +1,7 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
 
+
 ESP8266WebServer server(80);				// The Webserver
 Ticker tkSecond;
 
@@ -30,6 +31,12 @@ volatile unsigned long timestamp = 0;
 volatile unsigned long PVOutputPosted = 0;
 volatile unsigned long prevDays = 0;
 
+long energyEVLT = 0;
+long energyEVHT = 0;
+long energyEAV = 0;
+long energyEAT = 0;
+long energyG = 0;
+
 String WUTemp = "0.0";
 String WURain = "0";
 String WULocation = "";
@@ -44,7 +51,7 @@ bool SchmittTrigger=false;
 #define LED_PIN    2 //d4  onboard, blue LED
 #define SOLAR_PIN 14 //d5
 #define WATER_PIN 12 //d6
-#define POWER_PIN 13 //d7
+//#define POWER_PIN 13 //d7
 
 const int FLASH_PIN = 0;
 
@@ -59,6 +66,7 @@ struct strConfig {
 	byte  Gateway[4];
 	boolean dhcp;
 
+  byte CommSetting;
   long SystemId;
   String PVoutputApiKey;
   long PostEvery;

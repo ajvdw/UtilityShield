@@ -403,6 +403,7 @@ unsigned long Liter()
   return config.Pulsesperm3 > 0?(unsigned long)(0.5+1000.0*lWaterPulseCounter/config.Pulsesperm3) : 0;
 }
 
+
 String kWhString()
 {
   if(  config.Pulsesperkwh > 0 )
@@ -431,56 +432,58 @@ String m3String()
     return "0.000";
 }
 
-/*
-void readDSMR() {
-  long tl = 0;
-  long tld =0;
+double parseDSRM( char *parse, char *buffer, int nth )
+{
+  int l=strlen(parse);
+  if( strncmp( parse, buffer, l) == 0 )
+  {
+     String str=String(buffer);
+     int par = -1; 
+     while( nth > 0 )
+     {
+        str = str.substring(par+1);
+        par = str.indexOf("(");
+        nth--;
+     }
 
-  if (Serial.available()) {
-    input = Serial.read();
-    char inChar = (char)input;
-    // Fill buffer up to and including a new line (\n)
-    buffer[bufpos] = input&127;
-    bufpos++;
+     if( par >= 0 )
+     {
+        String value = str.substring(par+1);  
+        return value.toFloat();
+     }
+  }
+  return -1.0; 
+}
 
-    if (input == '\n') { // We received a new line (data up to \n)
-      if (sscanf(buffer,"1-0:1.8.1(%ld.%ld" ,&tl, &tld)==2){
-        tl *= 1000;
-        tl += tld;
-        //mEVLT = tl;
-      }
+void handleDSMR() 
+{
+  static char buffer[256];
+  static int bufpos=0;
+  double temp;
 
-      // 1-0:1.8.2 = Elektra verbruik hoog tarief (DSMR v4.0)
-      if (sscanf(buffer,"1-0:1.8.2(%ld.%ld" ,&tl, &tld)==2){
-        tl *= 1000;
-        tl += tld;
-        //mEVHT = tl;
-      }
+  if (Serial.available()) 
+  {
+    char input = Serial.read();
+    
+    buffer[bufpos] = input&127; // Upper bit is never used
+    if( bufpos < 255) bufpos++;
 
-      // 1-0:1.7.0 = Electricity consumption actual usage (DSMR v4.0)
-      if (sscanf(buffer,"1-0:1.7.0(%ld.%ld" ,&tl , &tld) == 2)
-      { 
-        //mEAV = (tl*1000)+tld;
-      }
+    if (input == '\n' && bufpos > 1) 
+    { 
+      buffer[bufpos]=0; // Terminate string
+      
+      temp=parseDSRM("1-0:1.8.1",buffer,1); if( temp>=0 )  energyEVLT = temp*1000;
+      temp=parseDSRM("1-0:1.8.2",buffer,1); if( temp>=0 )  energyEVHT = temp*1000;      
+      temp=parseDSRM("1-0:1.7.0",buffer,1); if( temp>=0 )  energyEAV = temp*1000;
+      temp=parseDSRM("1-0:2.7.0",buffer,1); if( temp>=0 )  energyEAT = temp*1000;
+      temp=parseDSRM("0-1:24.2.1",buffer,2); if( temp>=0 )  energyG = temp*1000;
+      temp=parseDSRM("0-1:24.3.0",buffer,9); if( temp>=0 )  energyG = temp*1000;
 
-      // 0-1:24.2.1 = Gas (DSMR v4.0) on Kaifa MA105 meter
-      if (strncmp(buffer, "0-1:24.2.1", strlen("0-1:24.2.1")) == 0) {
-        if (sscanf(strrchr(buffer, '(') + 1, "%d.%d", &tl, &tld) == 2) {
-          //mG = (tl*1000)+tld; 
-        }
-      }
-
-      // Empty buffer again (whole array)
-      for (int i=0; i<75; i++)
-      { 
-        buffer[i] = 0;
-      }
-      bufpos = 0;
+      bufpos=0; // Go to start of buffer
     }
-  } //Einde 'if AltSerial.available'
-} //Einde 'decodeTelegram()' functie
+  } 
+} 
 
-*/
 
 bool SyncTime()
 {
@@ -653,16 +656,15 @@ String PostPVOutput()
   static unsigned long prevWattHour = WattHour();
   static unsigned long prevLiter = Liter();
   unsigned long dt =   now() - PVOutputPosted;
-  long power;
-  float waterflow;
+  //long power = 0;
+  float waterflow =0.0;
 
-  power = 0;
-  waterflow = 0.0;
+
   PVOutputPosted = now();
 
   if( dt > 0 )
   {
-    power = 3600L * (WattHour() - prevWattHour) / dt;   // Watt  
+    //power = 3600L * (WattHour() - prevWattHour) / dt;   // Watt  
     waterflow = 60.0 * (Liter() - prevLiter) / dt;      // Liter per minute
   }
     
@@ -672,7 +674,7 @@ String PostPVOutput()
   GETString += "&d=" + DateString(); 
   GETString += "&t=" + TimeString(); 
   GETString += "&v1="+ (String)WattHour();
-  GETString += "&v2="+ (String)power;
+  GETString += "&v2="+ (String)Watt(); //power;
   GETString += "&v5="+ (String)WUTemp;
   GETString += "&v7="+ (String)DailyLiterWater();
   GETString += "&v8="+ String(waterflow,1);

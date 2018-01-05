@@ -32,6 +32,9 @@ void send_power_html()
     WriteConfig();
   }
 
+//115200 8N1
+//9600 7E1
+
   html.replace( "<!-- header -->", html_header() );
   html.replace( "<!-- menu -->", html_menu() );
   html.replace( "<!-- footer -->", html_footer() );

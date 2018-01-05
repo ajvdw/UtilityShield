@@ -25,7 +25,7 @@
 #include "home.html.h"
 #include "wifi.html.h"
 #include "info.html.h"
-#include "power.html.h"
+#include "energy.html.h"
 #include "solar.html.h"
 #include "water.html.h"
 #include "pvoutput.html.h"
@@ -42,7 +42,7 @@ void setup()
   //Serial.swap(); //GPIO15 (TX) and GPIO13 (RX)
   //Serial.set_tx(1); // GIIO1 (TX) 
 
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   
   //if you get here you have connected to the WiFi
@@ -141,10 +141,12 @@ void setup()
 	tkSecond.attach(1, Second_Tick);
   
   SyncTime(); // Initial Call to set the time
-
+  
   prevDays = now() / 86400;
   
   attachInterrupt(SOLAR_PIN , pinSolarChanged, RISING );  
+
+
   
 }
 
@@ -189,6 +191,7 @@ void loop ( void )
     Serial.println("Partial admin Mode enabled!");
   }
 
+
   if( config.GetEvery  > 0 )
   {
     if( WUndergroundCounter < 0 )
@@ -220,6 +223,8 @@ void loop ( void )
   if( ResetWattCounter < 0 ) lSolarPulseLength = 0;  
   if( ResetLiterCounter < 0 ) lWaterPulseLength = 0;
   
+  handleDSMR();
+
 	server.handleClient();
 }
 
