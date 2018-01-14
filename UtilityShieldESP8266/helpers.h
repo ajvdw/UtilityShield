@@ -437,10 +437,12 @@ double parseDSRM( char *parse, char *buffer, int nth )
   int l=strlen(parse);
   if( strncmp( parse, buffer, l) == 0 )
   {
+Serial.println( "Match" );       
      String str=String(buffer);
      int par = -1; 
      while( nth > 0 )
      {
+      
         str = str.substring(par+1);
         par = str.indexOf("(");
         nth--;
@@ -449,6 +451,7 @@ double parseDSRM( char *parse, char *buffer, int nth )
      if( par >= 0 )
      {
         String value = str.substring(par+1);  
+Serial.println( "Handled" );    
         return value.toFloat();
      }
   }
@@ -461,17 +464,21 @@ void handleDSMR()
   static int bufpos=0;
   double temp;
 
+  // Show data reception
+  digitalWrite( LED_PIN, !bufpos );
+ 
   if (Serial.available()) 
   {
-    char input = Serial.read();
     
+    char input = Serial.read();
+Serial.print( input );    
     buffer[bufpos] = input&127; // Upper bit is never used
     if( bufpos < 255) bufpos++;
 
     if (input == '\n' && bufpos > 1) 
     { 
       buffer[bufpos]=0; // Terminate string
-      
+Serial.println( "Parse" );      
       temp=parseDSRM("1-0:1.8.1",buffer,1); if( temp>=0 )  energyEVLT = temp*1000;
       temp=parseDSRM("1-0:1.8.2",buffer,1); if( temp>=0 )  energyEVHT = temp*1000;      
       temp=parseDSRM("1-0:1.7.0",buffer,1); if( temp>=0 )  energyEAV = temp*1000;
@@ -485,79 +492,6 @@ void handleDSMR()
 } 
 
 
-bool SyncTime()
-{
-  String GETString;
-
-  TimeValid = false;
-  
-  // Build HTTP GET request
-  GETString = "http://pvoutput.org";
-  GETString += "/service/r2/getsystem.jsp";
-  GETString += "?sid="+ (String)config.SystemId;
-  GETString += "&key="+ config.PVoutputApiKey; 
-
-  HTTPClient http;
-
-  const char * headerkeys[] = {"Date"} ;
-  size_t headerkeyssize = sizeof(headerkeys)/sizeof(char*);
-  //ask server to track these headers
-  http.collectHeaders(headerkeys, headerkeyssize );
-  http.begin(GETString);
-  int httpCode = http.GET();
-
-  if( http.hasHeader( "Date" ) )
-  {  
-    String GMTString = http.header("Date");
-    char tmp[81], *pt;
-    int i=0;
-    char *months = "JanFebMarAprMayJunJulAugSepOctNovDec", *m;
-    tmElements_t tm;
-    time_t t, l;
-    
-    strncpy( tmp, GMTString.c_str(), 80 );tmp[80]=0;
-
-    // parse date time 
-    pt=strtok( tmp, " :" ); // day of week
-    while( pt )
-    {
-      switch(i)
-      {
-        case 1: tm.Day=atoi(pt);  break;
-        case 2: m=strstr(months,pt); m[3]=0;if(m)tm.Month=((m-months)/3+1); break;
-        case 3: tm.Year=atoi(pt)-1970; break;
-        case 4: tm.Hour=atoi(pt); break;
-        case 5: tm.Minute=atoi(pt); break;
-        case 6: tm.Second=atoi(pt);break;
-      }
-      i++;
-      pt = strtok( NULL, " :" );
-    }    
-
-    // GMT
-    t = makeTime(tm); 
-
-    long startshift = config.startoffset - 12;
-    if( startshift < 0 ) startshift = startshift * 60 - config.startminute; else startshift = startshift * 60 + config.startminute;
-    
-    long endshift = config.endoffset - 12;
-    if( endshift < 0 ) endshift = endshift * 60 - config.endminute; else endshift = endshift * 60 + config.endminute;
-       
-    TimeChangeRule tcrDST = { "DST", config.startweek, config.startday+1, config.startmonth+1, config.starthour, startshift };
-    TimeChangeRule tcrSTD = { "STD", config.endweek,   config.endday+1,   config.endmonth+1,   config.endhour,   endshift   };  
-    Timezone TZ(tcrDST, tcrSTD);
-    TimeChangeRule *tcr;        
-
-    // convert to local timezone
-    l = TZ.toLocal(t, &tcr);
-
-    // adjust clock to timestamp in header
-    setTime( l ) ; 
-    TimeValid = true;   
-  }
-  http.end();
-  return TimeValid;
-}
 
 String GetWeather()
 {
@@ -650,6 +584,88 @@ String weatherString()
   return Result;
 }
 
+int HttpGetWithTimesync( String GETString )
+{
+  HTTPClient http;
+
+  const char * headerkeys[] = {"Date"} ;
+  size_t headerkeyssize = sizeof(headerkeys)/sizeof(char*);
+  //ask server to track these headers
+  http.collectHeaders(headerkeys, headerkeyssize );
+  http.begin(GETString);
+  int httpCode = http.GET();
+
+  if( http.hasHeader( "Date" ) )
+  {  
+    String GMTString = http.header("Date");
+    char tmp[81], *pt;
+    int i=0;
+    char *months = "JanFebMarAprMayJunJulAugSepOctNovDec", *m;
+    tmElements_t tm;
+    time_t t, l;
+    
+    strncpy( tmp, GMTString.c_str(), 80 );tmp[80]=0;
+
+    // parse date time 
+    pt=strtok( tmp, " :" ); // day of week
+    while( pt )
+    {
+      switch(i)
+      {
+        case 1: tm.Day=atoi(pt);  break;
+        case 2: m=strstr(months,pt); m[3]=0;if(m)tm.Month=((m-months)/3+1); break;
+        case 3: tm.Year=atoi(pt)-1970; break;
+        case 4: tm.Hour=atoi(pt); break;
+        case 5: tm.Minute=atoi(pt); break;
+        case 6: tm.Second=atoi(pt);break;
+      }
+      i++;
+      pt = strtok( NULL, " :" );
+    }    
+
+    // GMT
+    t = makeTime(tm); 
+
+    long startshift = config.startoffset - 12;
+    if( startshift < 0 ) startshift = startshift * 60 - config.startminute; else startshift = startshift * 60 + config.startminute;
+    
+    long endshift = config.endoffset - 12;
+    if( endshift < 0 ) endshift = endshift * 60 - config.endminute; else endshift = endshift * 60 + config.endminute;
+       
+    TimeChangeRule tcrDST = { "DST", config.startweek, config.startday+1, config.startmonth+1, config.starthour, startshift };
+    TimeChangeRule tcrSTD = { "STD", config.endweek,   config.endday+1,   config.endmonth+1,   config.endhour,   endshift   };  
+    Timezone TZ(tcrDST, tcrSTD);
+    TimeChangeRule *tcr;        
+
+    // convert to local timezone
+    l = TZ.toLocal(t, &tcr);
+
+    // adjust clock to timestamp in header
+    setTime( l ) ; 
+    TimeValid = true;   
+  }
+  http.end();
+
+  return httpCode;  
+}
+
+bool SyncTime()
+{
+  String GETString;
+
+  TimeValid = false;
+  
+  // Build HTTP GET request
+  GETString = "http://pvoutput.org";
+  GETString += "/service/r2/getsystem.jsp";
+  GETString += "?sid="+ (String)config.SystemId;
+  GETString += "&key="+ config.PVoutputApiKey; 
+
+  HttpGetWithTimesync( GETString );
+  
+  return TimeValid;
+}
+
 String PostPVOutput()
 {
   String GETString;
@@ -684,15 +700,8 @@ String PostPVOutput()
   
   prevWattHour = WattHour();
   prevLiter = Liter();
-  
-  HTTPClient http;
-  
-  http.begin(GETString);
-  int httpCode = http.GET();
-  
-  //Serial.println( (String)"PVOutput response: " + http.getString() );
 
-  http.end();
+  int httpCode = HttpGetWithTimesync( GETString );
 
   return (httpCode == HTTP_CODE_OK)? "OK": "ERROR";
 }

@@ -52,6 +52,7 @@ bool SchmittTrigger=false;
 #define SOLAR_PIN 14 //d5
 #define WATER_PIN 12 //d6
 //#define POWER_PIN 13 //d7
+#define RX_PIN    3 // rx
 
 const int FLASH_PIN = 0;
 

@@ -106,6 +106,7 @@ void setup()
   {
     WiFi.mode(WIFI_STA);
   }
+  
   ConfigureWifi();
 
   server.on ( "/", send_home_html );
@@ -139,21 +140,26 @@ void setup()
   RebootTimecCounter =  86400 * 6; // Run at least for six days before reboot
 
 	tkSecond.attach(1, Second_Tick);
-  
-  SyncTime(); // Initial Call to set the time
+
+  int retry = 5;
+  while( !TimeValid && retry )
+  {
+    delay( 1000 );
+    SyncTime(); // Initial Call to set the time
+    retry --;
+  }
   
   prevDays = now() / 86400;
   
   attachInterrupt(SOLAR_PIN , pinSolarChanged, RISING );  
 
-
-  
+  pinMode( LED_PIN, OUTPUT );
 }
 
 void loop ( void ) 
 {
   long Days;
-
+  
   if (millis()>taskTime) 
   {
     int sample = analogRead(A0);
@@ -226,6 +232,8 @@ void loop ( void )
   handleDSMR();
 
 	server.handleClient();
+
+  
 }
 
 
